@@ -1,35 +1,46 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui", 10)
 if not playerGui then return end
-
 local Camera = workspace.CurrentCamera
 
--- ==================== CONFIG ====================
+-- ==================== CONFIG LOCK ====================
 local targetLock = false
 local lockedPlayer = nil
 local buttonVisible = true
 local buttonSize = 55
 local isDraggable = true
-
 local predictEnabled = true
 local predictAmount = 0.18
 local lastTargetPos = nil
 local smoothedVelocity = Vector3.new(0, 0, 0)
 local lastVelocity = Vector3.new(0, 0, 0)
 local smoothedAcceleration = Vector3.new(0, 0, 0)
-
 local predictVertical = false
 local predictAcceleration = false
 local useDistance3D = false
 local smoothMode = false
 local smoothAmount = 0.35
 local menuTransparency = 0
-
 local CAMERA_LOCK_NAME = "ZeidopCameraLock"
+
+-- ==================== CONFIG ANTI-STUN ====================
+local antiStunEnabled = false
+local jumping = true
+local jumpPower = 50
+local dashForce = 60
+local stunLocked = false
+local jumpBtnSize = 62
+local dashBtnSize = 62
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+
+-- ==================== CONFIG DASH ====================
+local dashMultiplier = 1.5
+local dashEnabled = true
 
 -- ==================== CLEANUP ====================
 pcall(function() RunService:UnbindFromRenderStep(CAMERA_LOCK_NAME) end)
@@ -79,20 +90,18 @@ loadBarBg.Position = UDim2.new(0.25, 0, 0.56, 0)
 loadBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 loadBarBg.BorderSizePixel = 0
 loadBarBg.Parent = loadGui
-
-local corner1 = Instance.new("UICorner")
-corner1.CornerRadius = UDim.new(1, 0)
-corner1.Parent = loadBarBg
+local lbCorner = Instance.new("UICorner")
+lbCorner.CornerRadius = UDim.new(1, 0)
+lbCorner.Parent = loadBarBg
 
 local loadBar = Instance.new("Frame")
 loadBar.Size = UDim2.new(0, 0, 1, 0)
 loadBar.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 loadBar.BorderSizePixel = 0
 loadBar.Parent = loadBarBg
-
-local corner2 = Instance.new("UICorner")
-corner2.CornerRadius = UDim.new(1, 0)
-corner2.Parent = loadBar
+local lbCorner2 = Instance.new("UICorner")
+lbCorner2.CornerRadius = UDim.new(1, 0)
+lbCorner2.Parent = loadBar
 
 spawn(function()
     local startTime = tick()
@@ -130,7 +139,6 @@ menuStroke.Color = Color3.fromRGB(60, 60, 75)
 menuStroke.Thickness = 1.5
 menuStroke.Parent = menuFrame
 
--- TITLE BAR
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 30)
 titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
@@ -169,7 +177,6 @@ minBtn.TextSize = 16
 minBtn.Font = Enum.Font.GothamBold
 minBtn.BorderSizePixel = 0
 minBtn.Parent = titleBar
-
 local minCorner = Instance.new("UICorner")
 minCorner.CornerRadius = UDim.new(0, 6)
 minCorner.Parent = minBtn
@@ -181,7 +188,6 @@ accentLine.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 accentLine.BorderSizePixel = 0
 accentLine.Parent = menuFrame
 
--- TAB BAR
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 26)
 tabBar.Position = UDim2.new(0, 8, 0, 36)
@@ -200,10 +206,9 @@ tabLock.TextSize = 11
 tabLock.Font = Enum.Font.GothamBold
 tabLock.BorderSizePixel = 0
 tabLock.Parent = tabBar
-
-local tabLockCorner = Instance.new("UICorner")
-tabLockCorner.CornerRadius = UDim.new(0, 6)
-tabLockCorner.Parent = tabLock
+local tlCorner = Instance.new("UICorner")
+tlCorner.CornerRadius = UDim.new(0, 6)
+tlCorner.Parent = tabLock
 
 local tabNoStun = Instance.new("TextButton")
 tabNoStun.Size = UDim2.new(0, tabW, 1, 0)
@@ -215,10 +220,9 @@ tabNoStun.TextSize = 9
 tabNoStun.Font = Enum.Font.GothamBold
 tabNoStun.BorderSizePixel = 0
 tabNoStun.Parent = tabBar
-
-local tabNoStunCorner = Instance.new("UICorner")
-tabNoStunCorner.CornerRadius = UDim.new(0, 6)
-tabNoStunCorner.Parent = tabNoStun
+local tnsCorner = Instance.new("UICorner")
+tnsCorner.CornerRadius = UDim.new(0, 6)
+tnsCorner.Parent = tabNoStun
 
 local tabDash = Instance.new("TextButton")
 tabDash.Size = UDim2.new(0, tabW, 1, 0)
@@ -230,12 +234,10 @@ tabDash.TextSize = 11
 tabDash.Font = Enum.Font.GothamBold
 tabDash.BorderSizePixel = 0
 tabDash.Parent = tabBar
+local tdCorner = Instance.new("UICorner")
+tdCorner.CornerRadius = UDim.new(0, 6)
+tdCorner.Parent = tabDash
 
-local tabDashCorner = Instance.new("UICorner")
-tabDashCorner.CornerRadius = UDim.new(0, 6)
-tabDashCorner.Parent = tabDash
-
--- CONTENT AREA
 local contentArea = Instance.new("Frame")
 contentArea.Size = UDim2.new(1, -16, 1, -70)
 contentArea.Position = UDim2.new(0, 8, 0, 66)
@@ -260,7 +262,6 @@ local function halfBtn(text, y, isRight, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = lockPage
-    
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 6)
     c.Parent = b
@@ -292,33 +293,27 @@ local function smallBtn(text, x, y, w, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = lockPage
-    
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 5)
     c.Parent = b
     return b
 end
 
--- FILA 1: Boton visible + Arrastrable
 local showBtn = halfBtn("Boton: Visible", 0, false, Color3.fromRGB(45, 160, 70))
 local dragBtn = halfBtn("Arrastrable: ON", 0, true, Color3.fromRGB(45, 160, 70))
 
--- FILA 2: Tamano
 local sizeLabel = smallLabel("Tamano: 55", 30)
 local sizeMinus = smallBtn("-", 110, 28, 28)
 local sizePlus = smallBtn("+", 142, 28, 28)
 
--- FILA 3: Predict
 local predictLabel = smallLabel("Predict: 0.18s", 58, Color3.fromRGB(255, 220, 130))
 local predictMinus = smallBtn("-", 80, 56, 28)
 local predictPlus = smallBtn("+", 112, 56, 28)
 local predictToggle = smallBtn("ON", 144, 56, 28, Color3.fromRGB(45, 160, 70))
 
--- FILA 4: Predict Vertical + Predict Accel
 local predictVertBtn = halfBtn("Pred Vertical: OFF", 86, false, Color3.fromRGB(160, 50, 50))
 local predictAccBtn = halfBtn("Pred Accel: OFF", 86, true, Color3.fromRGB(160, 50, 50))
 
--- FILA 5: Modo Smooth
 local smoothBtn = halfBtn("Smooth: OFF", 114, false, Color3.fromRGB(160, 50, 50))
 local smoothMinus = smallBtn("-", 99, 112, 28)
 local smoothPlus = smallBtn("+", 131, 112, 28)
@@ -334,9 +329,120 @@ smoothValLabel.Font = Enum.Font.Gotham
 smoothValLabel.TextXAlignment = Enum.TextXAlignment.Left
 smoothValLabel.Parent = lockPage
 
--- FILA 6: Dist 3D + Transparencia
 local dist3DBtn = halfBtn("Dist 3D: OFF", 142, false, Color3.fromRGB(160, 50, 50))
 local transBtn = halfBtn("Transp: 0%", 142, true, Color3.fromRGB(45, 45, 60))
+
+-- ==================== NO STUN PAGE ====================
+local noStunPage = Instance.new("Frame")
+noStunPage.Size = UDim2.new(1, 0, 1, 0)
+noStunPage.BackgroundTransparency = 1
+noStunPage.Visible = false
+noStunPage.Parent = contentArea
+
+local function nsBtn(text, y, isRight, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.5, -2, 0, 22)
+    b.Position = UDim2.new(isRight and 0.5 or 0, isRight and 2 or 0, 0, y)
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 9
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.Parent = noStunPage
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = b
+    return b
+end
+
+local function nsLabel(text, y, color)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(0.6, 0, 0, 14)
+    l.Position = UDim2.new(0, 0, 0, y)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = color or Color3.fromRGB(200, 200, 210)
+    l.TextSize = 9
+    l.Font = Enum.Font.Gotham
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = noStunPage
+    return l
+end
+
+local function nsSmallBtn(text, x, y, w, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, w, 0, 20)
+    b.Position = UDim2.new(0, x, 0, y)
+    b.BackgroundColor3 = color or Color3.fromRGB(45, 45, 60)
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 11
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.Parent = noStunPage
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 5)
+    c.Parent = b
+    return b
+end
+
+local nsToggleBtn = Instance.new("TextButton")
+nsToggleBtn.Size = UDim2.new(1, 0, 0, 24)
+nsToggleBtn.Position = UDim2.new(0, 0, 0, 0)
+nsToggleBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
+nsToggleBtn.Text = "ANTI-STUN: OFF"
+nsToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+nsToggleBtn.TextSize = 11
+nsToggleBtn.Font = Enum.Font.GothamBold
+nsToggleBtn.BorderSizePixel = 0
+nsToggleBtn.Parent = noStunPage
+local nstCorner = Instance.new("UICorner")
+nstCorner.CornerRadius = UDim.new(0, 6)
+nstCorner.Parent = nsToggleBtn
+
+local nsJumpLabel = nsLabel("Jump Power: 50", 30)
+local nsJumpMinus = nsSmallBtn("-", 75, 28, 24)
+local nsJumpPlus = nsSmallBtn("+", 103, 28, 24)
+local nsJumpGenBtn = nsSmallBtn("GEN", 131, 28, 32, Color3.fromRGB(80, 60, 140))
+
+local nsDashLabel = nsLabel("Dash Force: 60", 54)
+local nsDashMinus = nsSmallBtn("-", 75, 52, 24)
+local nsDashPlus = nsSmallBtn("+", 103, 52, 24)
+local nsDashGenBtn = nsSmallBtn("GEN", 131, 52, 32, Color3.fromRGB(70, 130, 220))
+
+local nsJumpSizeLabel = nsLabel("Jump Size: 62", 78)
+local nsJumpSizeMinus = nsSmallBtn("-", 75, 76, 24)
+local nsJumpSizePlus = nsSmallBtn("+", 103, 76, 24)
+
+local nsDashSizeLabel = nsLabel("Dash Size: 62", 102)
+local nsDashSizeMinus = nsSmallBtn("-", 75, 100, 24)
+local nsDashSizePlus = nsSmallBtn("+", 103, 100, 24)
+
+local nsLockBtn = Instance.new("TextButton")
+nsLockBtn.Size = UDim2.new(1, 0, 0, 22)
+nsLockBtn.Position = UDim2.new(0, 0, 0, 128)
+nsLockBtn.BackgroundColor3 = Color3.fromRGB(90, 90, 100)
+nsLockBtn.Text = "LOCK FLOAT: OFF"
+nsLockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+nsLockBtn.TextSize = 10
+nsLockBtn.Font = Enum.Font.GothamBold
+nsLockBtn.BorderSizePixel = 0
+nsLockBtn.Parent = noStunPage
+local nslCorner = Instance.new("UICorner")
+nslCorner.CornerRadius = UDim.new(0, 6)
+nslCorner.Parent = nsLockBtn
+
+local nsInfoLabel = Instance.new("TextLabel")
+nsInfoLabel.Size = UDim2.new(1, 0, 0, 20)
+nsInfoLabel.Position = UDim2.new(0, 0, 0, 154)
+nsInfoLabel.BackgroundTransparency = 1
+nsInfoLabel.Text = "Hotkeys: X=toggle Z=off Space=jump Q=dash"
+nsInfoLabel.TextColor3 = Color3.fromRGB(120, 120, 140)
+nsInfoLabel.TextSize = 8
+nsInfoLabel.Font = Enum.Font.Gotham
+nsInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+nsInfoLabel.Parent = noStunPage
 
 -- ==================== DASH PAGE ====================
 local dashPage = Instance.new("Frame")
@@ -377,7 +483,6 @@ dashMinusBtn.TextSize = 16
 dashMinusBtn.Font = Enum.Font.GothamBold
 dashMinusBtn.BorderSizePixel = 0
 dashMinusBtn.Parent = dashPage
-
 local dmbCorner = Instance.new("UICorner")
 dmbCorner.CornerRadius = UDim.new(0, 6)
 dmbCorner.Parent = dashMinusBtn
@@ -392,7 +497,6 @@ dashPlusBtn.TextSize = 16
 dashPlusBtn.Font = Enum.Font.GothamBold
 dashPlusBtn.BorderSizePixel = 0
 dashPlusBtn.Parent = dashPage
-
 local dpbCorner = Instance.new("UICorner")
 dpbCorner.CornerRadius = UDim.new(0, 6)
 dpbCorner.Parent = dashPlusBtn
@@ -407,7 +511,6 @@ dashToggleBtn.TextSize = 12
 dashToggleBtn.Font = Enum.Font.GothamBold
 dashToggleBtn.BorderSizePixel = 0
 dashToggleBtn.Parent = dashPage
-
 local dtbCorner = Instance.new("UICorner")
 dtbCorner.CornerRadius = UDim.new(0, 6)
 dtbCorner.Parent = dashToggleBtn
@@ -423,23 +526,6 @@ dashDesc.Font = Enum.Font.Gotham
 dashDesc.TextXAlignment = Enum.TextXAlignment.Left
 dashDesc.TextWrapped = true
 dashDesc.Parent = dashPage
-
--- ==================== PLACEHOLDER NO STUN ====================
-local noStunPage = Instance.new("Frame")
-noStunPage.Size = UDim2.new(1, 0, 1, 0)
-noStunPage.BackgroundTransparency = 1
-noStunPage.Visible = false
-noStunPage.Parent = contentArea
-
-local noStunLabel = Instance.new("TextLabel")
-noStunLabel.Size = UDim2.new(1, 0, 0, 40)
-noStunLabel.Position = UDim2.new(0, 0, 0.3, 0)
-noStunLabel.BackgroundTransparency = 1
-noStunLabel.Text = "Proximamente..."
-noStunLabel.TextColor3 = Color3.fromRGB(120, 120, 130)
-noStunLabel.TextSize = 14
-noStunLabel.Font = Enum.Font.GothamBold
-noStunLabel.Parent = noStunPage
 
 -- ==================== TAB SYSTEM ====================
 local tabs = {
@@ -466,7 +552,7 @@ tabLock.MouseButton1Click:Connect(function() setActiveTab(1) end)
 tabNoStun.MouseButton1Click:Connect(function() setActiveTab(2) end)
 tabDash.MouseButton1Click:Connect(function() setActiveTab(3) end)
 
--- ==================== BOTON LOCK FLOTANTE ====================
+-- ==================== BOTONES FLOTANTES ====================
 local lockButton = Instance.new("TextButton")
 lockButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
 lockButton.Position = UDim2.new(0.75, 0, 0.65, 0)
@@ -478,11 +564,9 @@ lockButton.Font = Enum.Font.GothamBold
 lockButton.BorderSizePixel = 0
 lockButton.Active = true
 lockButton.Parent = screenGui
-
 local lockCorner = Instance.new("UICorner")
 lockCorner.CornerRadius = UDim.new(1, 0)
 lockCorner.Parent = lockButton
-
 local lockStroke = Instance.new("UIStroke")
 lockStroke.Color = Color3.fromRGB(0, 0, 0)
 lockStroke.Thickness = 1.5
@@ -501,17 +585,57 @@ miniMenuBtn.BorderSizePixel = 0
 miniMenuBtn.Visible = false
 miniMenuBtn.Active = true
 miniMenuBtn.Parent = screenGui
-
 local miniCorner = Instance.new("UICorner")
 miniCorner.CornerRadius = UDim.new(1, 0)
 miniCorner.Parent = miniMenuBtn
+
+local jumpBtn = Instance.new("TextButton")
+jumpBtn.Name = "JumpButton"
+jumpBtn.Size = UDim2.new(0, jumpBtnSize, 0, jumpBtnSize)
+jumpBtn.Position = UDim2.new(0.72, 0, 0.68, 0)
+jumpBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 140)
+jumpBtn.Text = "JUMP"
+jumpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+jumpBtn.TextSize = 14
+jumpBtn.Font = Enum.Font.GothamBold
+jumpBtn.BorderSizePixel = 0
+jumpBtn.Visible = false
+jumpBtn.Parent = screenGui
+local jbCorner = Instance.new("UICorner")
+jbCorner.CornerRadius = UDim.new(1, 0)
+jbCorner.Parent = jumpBtn
+local jbStroke = Instance.new("UIStroke")
+jbStroke.Color = Color3.fromRGB(0, 0, 0)
+jbStroke.Thickness = 1.5
+jbStroke.Transparency = 0.3
+jbStroke.Parent = jumpBtn
+
+local dashFloatBtn = Instance.new("TextButton")
+dashFloatBtn.Name = "DashButton"
+dashFloatBtn.Size = UDim2.new(0, dashBtnSize, 0, dashBtnSize)
+dashFloatBtn.Position = UDim2.new(0.72, 0, 0.55, 0)
+dashFloatBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 220)
+dashFloatBtn.Text = "DASH"
+dashFloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+dashFloatBtn.TextSize = 14
+dashFloatBtn.Font = Enum.Font.GothamBold
+dashFloatBtn.BorderSizePixel = 0
+dashFloatBtn.Visible = false
+dashFloatBtn.Parent = screenGui
+local dfCorner = Instance.new("UICorner")
+dfCorner.CornerRadius = UDim.new(1, 0)
+dfCorner.Parent = dashFloatBtn
+local dfStroke = Instance.new("UIStroke")
+dfStroke.Color = Color3.fromRGB(0, 0, 0)
+dfStroke.Thickness = 1.5
+dfStroke.Transparency = 0.3
+dfStroke.Parent = dashFloatBtn
 
 -- ==================== ARRASTRE ====================
 local function makeDraggable(gui, condition)
     local dragging = false
     local dragStart = nil
     local startPos = nil
-
     gui.InputBegan:Connect(function(input)
         if not condition() then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -525,7 +649,6 @@ local function makeDraggable(gui, condition)
             end)
         end
     end)
-
     UserInputService.InputChanged:Connect(function(input)
         if not dragging then return end
         if not condition() then return end
@@ -539,21 +662,40 @@ end
 makeDraggable(menuFrame, function() return true end)
 makeDraggable(miniMenuBtn, function() return true end)
 makeDraggable(lockButton, function() return isDraggable end)
+makeDraggable(jumpBtn, function() return not stunLocked end)
+makeDraggable(dashFloatBtn, function() return not stunLocked end)
 
--- ==================== LOGICA DE SELECCION ====================
+-- ==================== FUNCIONES ANTI-STUN ====================
+local function jump()
+    if not humanoid or not rootPart or not jumping then return end
+    jumping = false
+    humanoid.PlatformStand = true
+    rootPart.Velocity = Vector3.zero
+    task.wait()
+    rootPart.Velocity = Vector3.new(0, jumpPower, 0)
+    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    task.wait(0.05)
+    humanoid.PlatformStand = false
+    task.wait(1.2)
+    jumping = true
+end
+
+local function dash()
+    if not humanoid or not rootPart then return end
+    local lookVector = rootPart.CFrame.LookVector
+    rootPart.Velocity = Vector3.new(lookVector.X * dashForce, rootPart.Velocity.Y, lookVector.Z * dashForce)
+end
+
+-- ==================== LOGICA LOCK ====================
 local function getClosestPlayer()
     Camera = workspace.CurrentCamera
     if not Camera then return nil end
-
     local closestPlayer = nil
     local shortestDistance = math.huge
-
     local myChar = localPlayer.Character
     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-
     local vp = Camera.ViewportSize
     local screenCenter = Vector2.new(vp.X / 2, vp.Y / 2)
-
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= localPlayer and player.Character then
             local root = player.Character:FindFirstChild("HumanoidRootPart")
@@ -592,7 +734,6 @@ local function resetLock()
 end
 
 -- ==================== EVENTOS LOCK ====================
-
 lockButton.MouseButton1Click:Connect(function()
     if not targetLock then
         local closest = getClosestPlayer()
@@ -697,9 +838,7 @@ end)
 
 transBtn.MouseButton1Click:Connect(function()
     menuTransparency = menuTransparency + 0.15
-    if menuTransparency > 0.75 then
-        menuTransparency = 0
-    end
+    if menuTransparency > 0.75 then menuTransparency = 0 end
     menuFrame.BackgroundTransparency = menuTransparency
     local pct = math.floor(menuTransparency * 100 + 0.5)
     transBtn.Text = "Transp: " .. tostring(pct) .. "%"
@@ -717,10 +856,95 @@ miniMenuBtn.MouseButton1Click:Connect(function()
     menuFrame.Position = miniMenuBtn.Position
 end)
 
--- ==================== LOGICA DASH ====================
-local dashMultiplier = 1.5
-local dashEnabled = true
+-- ==================== EVENTOS ANTI-STUN ====================
+local function updateNsToggle()
+    if antiStunEnabled then
+        nsToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 160, 70)
+        nsToggleBtn.Text = "ANTI-STUN: ON"
+    else
+        nsToggleBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
+        nsToggleBtn.Text = "ANTI-STUN: OFF"
+    end
+end
 
+nsToggleBtn.MouseButton1Click:Connect(function()
+    antiStunEnabled = not antiStunEnabled
+    jumping = true
+    updateNsToggle()
+end)
+
+nsJumpMinus.MouseButton1Click:Connect(function()
+    jumpPower = math.max(10, jumpPower - 5)
+    nsJumpLabel.Text = "Jump Power: " .. jumpPower
+end)
+
+nsJumpPlus.MouseButton1Click:Connect(function()
+    jumpPower = math.min(150, jumpPower + 5)
+    nsJumpLabel.Text = "Jump Power: " .. jumpPower
+end)
+
+nsDashMinus.MouseButton1Click:Connect(function()
+    dashForce = math.max(10, dashForce - 5)
+    nsDashLabel.Text = "Dash Force: " .. dashForce
+end)
+
+nsDashPlus.MouseButton1Click:Connect(function()
+    dashForce = math.min(150, dashForce + 5)
+    nsDashLabel.Text = "Dash Force: " .. dashForce
+end)
+
+nsJumpSizeMinus.MouseButton1Click:Connect(function()
+    jumpBtnSize = math.max(30, jumpBtnSize - 2)
+    jumpBtn.Size = UDim2.new(0, jumpBtnSize, 0, jumpBtnSize)
+    nsJumpSizeLabel.Text = "Jump Size: " .. jumpBtnSize
+end)
+
+nsJumpSizePlus.MouseButton1Click:Connect(function()
+    jumpBtnSize = math.min(100, jumpBtnSize + 2)
+    jumpBtn.Size = UDim2.new(0, jumpBtnSize, 0, jumpBtnSize)
+    nsJumpSizeLabel.Text = "Jump Size: " .. jumpBtnSize
+end)
+
+nsDashSizeMinus.MouseButton1Click:Connect(function()
+    dashBtnSize = math.max(30, dashBtnSize - 2)
+    dashFloatBtn.Size = UDim2.new(0, dashBtnSize, 0, dashBtnSize)
+    nsDashSizeLabel.Text = "Dash Size: " .. dashBtnSize
+end)
+
+nsDashSizePlus.MouseButton1Click:Connect(function()
+    dashBtnSize = math.min(100, dashBtnSize + 2)
+    dashFloatBtn.Size = UDim2.new(0, dashBtnSize, 0, dashBtnSize)
+    nsDashSizeLabel.Text = "Dash Size: " .. dashBtnSize
+end)
+
+nsJumpGenBtn.MouseButton1Click:Connect(function()
+    jumpBtn.Visible = not jumpBtn.Visible
+end)
+
+nsDashGenBtn.MouseButton1Click:Connect(function()
+    dashFloatBtn.Visible = not dashFloatBtn.Visible
+end)
+
+nsLockBtn.MouseButton1Click:Connect(function()
+    stunLocked = not stunLocked
+    if stunLocked then
+        nsLockBtn.Text = "LOCK FLOAT: ON"
+        nsLockBtn.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+    else
+        nsLockBtn.Text = "LOCK FLOAT: OFF"
+        nsLockBtn.BackgroundColor3 = Color3.fromRGB(90, 90, 100)
+    end
+end)
+
+jumpBtn.MouseButton1Click:Connect(function()
+    jump()
+end)
+
+dashFloatBtn.MouseButton1Click:Connect(function()
+    dash()
+end)
+
+-- ==================== EVENTOS DASH ====================
 local function updateDashLabel()
     dashValueLabel.Text = "Multiplicador: " .. string.format("%.1f", dashMultiplier) .. "x"
 end
@@ -730,7 +954,6 @@ local function hookDash()
     if not char then return end
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
-
     root.ChildAdded:Connect(function(child)
         if not dashEnabled then return end
         if child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
@@ -765,33 +988,49 @@ dashToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ==================== LOOP DE CAMERA LOCK ====================
-local lastDeltaTime = 1/60
+-- ==================== HOTKEYS ====================
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        antiStunEnabled = not antiStunEnabled
+        jumping = true
+        updateNsToggle()
+    elseif input.KeyCode == Enum.KeyCode.Z then
+        antiStunEnabled = false
+        updateNsToggle()
+    elseif input.KeyCode == Enum.KeyCode.Space and antiStunEnabled then
+        jump()
+    elseif input.KeyCode == Enum.KeyCode.Q then
+        dash()
+    end
+end)
 
+-- ==================== HEARTBEAT ANTI-STUN ====================
+RunService.Heartbeat:Connect(function()
+    if not antiStunEnabled or not humanoid or not jumping then return end
+    local state = humanoid:GetState()
+    if state == Enum.HumanoidStateType.FallingDown or state == Enum.HumanoidStateType.GettingUp or state == Enum.HumanoidStateType.Stunned then
+        jump()
+    end
+end)
+
+-- ==================== LOOP CAMERA LOCK ====================
+local lastDeltaTime = 1/60
 local function cameraLockStep(dt)
     lastDeltaTime = dt or (1/60)
-
-    if not targetLock or not lockedPlayer or not lockedPlayer.Character then
-        return
-    end
-
+    if not targetLock or not lockedPlayer or not lockedPlayer.Character then return end
     Camera = workspace.CurrentCamera
     if not Camera then return end
-
     local root = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
     local hum = lockedPlayer.Character:FindFirstChildOfClass("Humanoid")
-
     if not root or not hum or hum.Health <= 0 then
         resetLock()
         return
     end
-
     local targetPos = root.Position
     local aimPosition = targetPos
-
     if predictEnabled then
         local currentVelocity = Vector3.new(0, 0, 0)
-
         local vel = root.AssemblyLinearVelocity or root.Velocity
         if vel and vel.Magnitude > 0.5 then
             currentVelocity = vel
@@ -800,10 +1039,8 @@ local function cameraLockStep(dt)
             local elapsed = math.max(0.008, lastDeltaTime)
             currentVelocity = delta / elapsed
         end
-
         local velSmoothFactor = 0.3
         smoothedVelocity = smoothedVelocity * (1 - velSmoothFactor) + currentVelocity * velSmoothFactor
-
         if predictAcceleration then
             local currentAcceleration = Vector3.new(0, 0, 0)
             if lastVelocity.Magnitude > 0.1 then
@@ -811,14 +1048,11 @@ local function cameraLockStep(dt)
                 local elapsed = math.max(0.008, lastDeltaTime)
                 currentAcceleration = accDelta / elapsed
             end
-
             local accSmoothFactor = 0.2
             smoothedAcceleration = smoothedAcceleration * (1 - accSmoothFactor) + currentAcceleration * accSmoothFactor
             lastVelocity = currentVelocity
-
             local t = predictAmount
             local predictedOffset = (smoothedVelocity * t) + (smoothedAcceleration * 0.5 * t * t)
-
             if predictVertical then
                 aimPosition = targetPos + predictedOffset
             else
@@ -835,11 +1069,8 @@ local function cameraLockStep(dt)
             end
         end
     end
-
     lastTargetPos = targetPos
-
     local targetCFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
-
     if smoothMode then
         Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothAmount)
     else
@@ -847,18 +1078,16 @@ local function cameraLockStep(dt)
     end
 end
 
-RunService:BindToRenderStep(
-    CAMERA_LOCK_NAME,
-    Enum.RenderPriority.Camera.Value + 1,
-    cameraLockStep
-)
+RunService:BindToRenderStep(CAMERA_LOCK_NAME, Enum.RenderPriority.Camera.Value + 1, cameraLockStep)
 
--- ==================== SEGURIDAD Y AUTO-INIT ====================
-localPlayer.CharacterAdded:Connect(function()
+-- ==================== SEGURIDAD ====================
+localPlayer.CharacterAdded:Connect(function(c)
+    character = c
+    humanoid = c:WaitForChild("Humanoid")
+    rootPart = c:WaitForChild("HumanoidRootPart", 3) or c:FindFirstChild("Torso")
+    jumping = true
     wait(0.5)
-    if targetLock then
-        resetLock()
-    end
+    if targetLock then resetLock() end
     hookDash()
 end)
 
@@ -866,7 +1095,7 @@ if localPlayer.Character then
     hookDash()
 end
 
--- ==================== MOSTRAR MENU DESPUES DE CARGA ====================
+-- ==================== MOSTRAR MENU ====================
 delay(2, function()
     if loadGui and loadGui.Parent then
         loadGui:Destroy()
@@ -874,4 +1103,4 @@ delay(2, function()
     menuFrame.Visible = true
 end)
 
-print("zeidop hub cargado OK")
+print("Zeidop Hub cargado OK - LOCK + ANTI-STUN + DASH")
