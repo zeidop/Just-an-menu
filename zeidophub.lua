@@ -50,7 +50,7 @@ local loadBg = Instance.new("Frame")
 loadBg.Size = UDim2.new(1, 0, 1, 0)
 loadBg.BackgroundColor3 = Color3.fromRGB(8, 8, 12)
 loadBg.BorderSizePixel = 0
-loadBg.InputTransparent = true
+loadBg.Active = false
 loadBg.Parent = loadGui
 
 local loadTitle = Instance.new("TextLabel")
@@ -79,22 +79,28 @@ loadBarBg.Position = UDim2.new(0.25, 0, 0.56, 0)
 loadBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 loadBarBg.BorderSizePixel = 0
 loadBarBg.Parent = loadGui
-Instance.new("UICorner", loadBarBg).CornerRadius = UDim.new(1, 0)
+
+local corner1 = Instance.new("UICorner")
+corner1.CornerRadius = UDim.new(1, 0)
+corner1.Parent = loadBarBg
 
 local loadBar = Instance.new("Frame")
 loadBar.Size = UDim2.new(0, 0, 1, 0)
 loadBar.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 loadBar.BorderSizePixel = 0
 loadBar.Parent = loadBarBg
-Instance.new("UICorner", loadBar).CornerRadius = UDim.new(1, 0)
 
-task.spawn(function()
+local corner2 = Instance.new("UICorner")
+corner2.CornerRadius = UDim.new(1, 0)
+corner2.Parent = loadBar
+
+spawn(function()
     local startTime = tick()
     while tick() - startTime < 2 do
         local progress = (tick() - startTime) / 2
         if progress > 1 then progress = 1 end
         loadBar.Size = UDim2.new(progress, 0, 1, 0)
-        task.wait(0.03)
+        wait(0.03)
     end
 end)
 
@@ -163,7 +169,10 @@ minBtn.TextSize = 16
 minBtn.Font = Enum.Font.GothamBold
 minBtn.BorderSizePixel = 0
 minBtn.Parent = titleBar
-Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.Parent = minBtn
 
 local accentLine = Instance.new("Frame")
 accentLine.Size = UDim2.new(1, 0, 0, 2)
@@ -191,7 +200,10 @@ tabLock.TextSize = 11
 tabLock.Font = Enum.Font.GothamBold
 tabLock.BorderSizePixel = 0
 tabLock.Parent = tabBar
-Instance.new("UICorner", tabLock).CornerRadius = UDim.new(0, 6)
+
+local tabLockCorner = Instance.new("UICorner")
+tabLockCorner.CornerRadius = UDim.new(0, 6)
+tabLockCorner.Parent = tabLock
 
 local tabNoStun = Instance.new("TextButton")
 tabNoStun.Size = UDim2.new(0, tabW, 1, 0)
@@ -203,7 +215,10 @@ tabNoStun.TextSize = 9
 tabNoStun.Font = Enum.Font.GothamBold
 tabNoStun.BorderSizePixel = 0
 tabNoStun.Parent = tabBar
-Instance.new("UICorner", tabNoStun).CornerRadius = UDim.new(0, 6)
+
+local tabNoStunCorner = Instance.new("UICorner")
+tabNoStunCorner.CornerRadius = UDim.new(0, 6)
+tabNoStunCorner.Parent = tabNoStun
 
 local tabDash = Instance.new("TextButton")
 tabDash.Size = UDim2.new(0, tabW, 1, 0)
@@ -215,7 +230,10 @@ tabDash.TextSize = 11
 tabDash.Font = Enum.Font.GothamBold
 tabDash.BorderSizePixel = 0
 tabDash.Parent = tabBar
-Instance.new("UICorner", tabDash).CornerRadius = UDim.new(0, 6)
+
+local tabDashCorner = Instance.new("UICorner")
+tabDashCorner.CornerRadius = UDim.new(0, 6)
+tabDashCorner.Parent = tabDash
 
 -- CONTENT AREA
 local contentArea = Instance.new("Frame")
@@ -242,7 +260,10 @@ local function halfBtn(text, y, isRight, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = lockPage
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = b
     return b
 end
 
@@ -271,7 +292,10 @@ local function smallBtn(text, x, y, w, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = lockPage
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+    
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 5)
+    c.Parent = b
     return b
 end
 
@@ -407,7 +431,10 @@ miniMenuBtn.BorderSizePixel = 0
 miniMenuBtn.Visible = false
 miniMenuBtn.Active = true
 miniMenuBtn.Parent = screenGui
-Instance.new("UICorner", miniMenuBtn).CornerRadius = UDim.new(1, 0)
+
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(1, 0)
+miniCorner.Parent = miniMenuBtn
 
 -- ==================== ARRASTRE ====================
 local function makeDraggable(gui, condition)
@@ -710,14 +737,14 @@ RunService:BindToRenderStep(
 
 -- ==================== SEGURIDAD ====================
 localPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
+    wait(0.5)
     if targetLock then
         resetLock()
     end
 end)
 
 -- ==================== MOSTRAR MENU DESPUES DE CARGA ====================
-task.delay(2, function()
+delay(2, function()
     if loadGui and loadGui.Parent then
         loadGui:Destroy()
     end
