@@ -338,7 +338,93 @@ smoothValLabel.Parent = lockPage
 local dist3DBtn = halfBtn("Dist 3D: OFF", 142, false, Color3.fromRGB(160, 50, 50))
 local transBtn = halfBtn("Transp: 0%", 142, true, Color3.fromRGB(45, 45, 60))
 
--- ==================== PLACEHOLDER PAGES ====================
+-- ==================== DASH PAGE ====================
+local dashPage = Instance.new("Frame")
+dashPage.Size = UDim2.new(1, 0, 1, 0)
+dashPage.BackgroundTransparency = 1
+dashPage.Visible = false
+dashPage.Parent = contentArea
+
+local dashTitle = Instance.new("TextLabel")
+dashTitle.Size = UDim2.new(1, -10, 0, 20)
+dashTitle.Position = UDim2.new(0, 5, 0, 0)
+dashTitle.BackgroundTransparency = 1
+dashTitle.Text = "Dash Speed"
+dashTitle.TextColor3 = Color3.fromRGB(160, 120, 255)
+dashTitle.TextSize = 14
+dashTitle.Font = Enum.Font.GothamBold
+dashTitle.TextXAlignment = Enum.TextXAlignment.Left
+dashTitle.Parent = dashPage
+
+local dashValueLabel = Instance.new("TextLabel")
+dashValueLabel.Size = UDim2.new(1, -10, 0, 18)
+dashValueLabel.Position = UDim2.new(0, 5, 0, 24)
+dashValueLabel.BackgroundTransparency = 1
+dashValueLabel.Text = "Multiplicador: 1.5x"
+dashValueLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
+dashValueLabel.TextSize = 11
+dashValueLabel.Font = Enum.Font.Gotham
+dashValueLabel.TextXAlignment = Enum.TextXAlignment.Left
+dashValueLabel.Parent = dashPage
+
+local dashMinusBtn = Instance.new("TextButton")
+dashMinusBtn.Size = UDim2.new(0.5, -4, 0, 28)
+dashMinusBtn.Position = UDim2.new(0, 0, 0, 50)
+dashMinusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+dashMinusBtn.Text = "-"
+dashMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+dashMinusBtn.TextSize = 16
+dashMinusBtn.Font = Enum.Font.GothamBold
+dashMinusBtn.BorderSizePixel = 0
+dashMinusBtn.Parent = dashPage
+
+local dmbCorner = Instance.new("UICorner")
+dmbCorner.CornerRadius = UDim.new(0, 6)
+dmbCorner.Parent = dashMinusBtn
+
+local dashPlusBtn = Instance.new("TextButton")
+dashPlusBtn.Size = UDim2.new(0.5, -4, 0, 28)
+dashPlusBtn.Position = UDim2.new(0.5, 4, 0, 50)
+dashPlusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+dashPlusBtn.Text = "+"
+dashPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+dashPlusBtn.TextSize = 16
+dashPlusBtn.Font = Enum.Font.GothamBold
+dashPlusBtn.BorderSizePixel = 0
+dashPlusBtn.Parent = dashPage
+
+local dpbCorner = Instance.new("UICorner")
+dpbCorner.CornerRadius = UDim.new(0, 6)
+dpbCorner.Parent = dashPlusBtn
+
+local dashToggleBtn = Instance.new("TextButton")
+dashToggleBtn.Size = UDim2.new(1, 0, 0, 28)
+dashToggleBtn.Position = UDim2.new(0, 0, 0, 86)
+dashToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 160, 70)
+dashToggleBtn.Text = "ACTIVADO"
+dashToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+dashToggleBtn.TextSize = 12
+dashToggleBtn.Font = Enum.Font.GothamBold
+dashToggleBtn.BorderSizePixel = 0
+dashToggleBtn.Parent = dashPage
+
+local dtbCorner = Instance.new("UICorner")
+dtbCorner.CornerRadius = UDim.new(0, 6)
+dtbCorner.Parent = dashToggleBtn
+
+local dashDesc = Instance.new("TextLabel")
+dashDesc.Size = UDim2.new(1, -10, 0, 50)
+dashDesc.Position = UDim2.new(0, 5, 0, 120)
+dashDesc.BackgroundTransparency = 1
+dashDesc.Text = "Aumenta la velocidad del dash al multiplicar la fuerza del impulso de Rogue Demon."
+dashDesc.TextColor3 = Color3.fromRGB(120, 120, 130)
+dashDesc.TextSize = 10
+dashDesc.Font = Enum.Font.Gotham
+dashDesc.TextXAlignment = Enum.TextXAlignment.Left
+dashDesc.TextWrapped = true
+dashDesc.Parent = dashPage
+
+-- ==================== PLACEHOLDER NO STUN ====================
 local noStunPage = Instance.new("Frame")
 noStunPage.Size = UDim2.new(1, 0, 1, 0)
 noStunPage.BackgroundTransparency = 1
@@ -354,22 +440,6 @@ noStunLabel.TextColor3 = Color3.fromRGB(120, 120, 130)
 noStunLabel.TextSize = 14
 noStunLabel.Font = Enum.Font.GothamBold
 noStunLabel.Parent = noStunPage
-
-local dashPage = Instance.new("Frame")
-dashPage.Size = UDim2.new(1, 0, 1, 0)
-dashPage.BackgroundTransparency = 1
-dashPage.Visible = false
-dashPage.Parent = contentArea
-
-local dashLabel = Instance.new("TextLabel")
-dashLabel.Size = UDim2.new(1, 0, 0, 40)
-dashLabel.Position = UDim2.new(0, 0, 0.3, 0)
-dashLabel.BackgroundTransparency = 1
-dashLabel.Text = "Proximamente..."
-dashLabel.TextColor3 = Color3.fromRGB(120, 120, 130)
-dashLabel.TextSize = 14
-dashLabel.Font = Enum.Font.GothamBold
-dashLabel.Parent = dashPage
 
 -- ==================== TAB SYSTEM ====================
 local tabs = {
@@ -521,7 +591,7 @@ local function resetLock()
     smoothedAcceleration = Vector3.new(0, 0, 0)
 end
 
--- ==================== EVENTOS ====================
+-- ==================== EVENTOS LOCK ====================
 
 lockButton.MouseButton1Click:Connect(function()
     if not targetLock then
@@ -647,6 +717,54 @@ miniMenuBtn.MouseButton1Click:Connect(function()
     menuFrame.Position = miniMenuBtn.Position
 end)
 
+-- ==================== LOGICA DASH ====================
+local dashMultiplier = 1.5
+local dashEnabled = true
+
+local function updateDashLabel()
+    dashValueLabel.Text = "Multiplicador: " .. string.format("%.1f", dashMultiplier) .. "x"
+end
+
+local function hookDash()
+    local char = localPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    root.ChildAdded:Connect(function(child)
+        if not dashEnabled then return end
+        if child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
+            wait()
+            if child:IsA("BodyVelocity") then
+                child.Velocity = child.Velocity * dashMultiplier
+            elseif child:IsA("LinearVelocity") then
+                child.VectorVelocity = child.VectorVelocity * dashMultiplier
+            end
+        end
+    end)
+end
+
+dashMinusBtn.MouseButton1Click:Connect(function()
+    dashMultiplier = math.max(0.5, dashMultiplier - 0.1)
+    updateDashLabel()
+end)
+
+dashPlusBtn.MouseButton1Click:Connect(function()
+    dashMultiplier = math.min(4, dashMultiplier + 0.1)
+    updateDashLabel()
+end)
+
+dashToggleBtn.MouseButton1Click:Connect(function()
+    dashEnabled = not dashEnabled
+    if dashEnabled then
+        dashToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 160, 70)
+        dashToggleBtn.Text = "ACTIVADO"
+    else
+        dashToggleBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
+        dashToggleBtn.Text = "DESACTIVADO"
+    end
+end)
+
 -- ==================== LOOP DE CAMERA LOCK ====================
 local lastDeltaTime = 1/60
 
@@ -735,13 +853,18 @@ RunService:BindToRenderStep(
     cameraLockStep
 )
 
--- ==================== SEGURIDAD ====================
+-- ==================== SEGURIDAD Y AUTO-INIT ====================
 localPlayer.CharacterAdded:Connect(function()
     wait(0.5)
     if targetLock then
         resetLock()
     end
+    hookDash()
 end)
+
+if localPlayer.Character then
+    hookDash()
+end
 
 -- ==================== MOSTRAR MENU DESPUES DE CARGA ====================
 delay(2, function()
