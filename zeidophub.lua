@@ -42,6 +42,12 @@ local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindF
 local dashMultiplier = 1.5
 local dashEnabled = true
 
+-- ==================== LOGO Y SONIDO ====================
+-- Pon aqui el ID de tu imagen subida a Roblox (0 = sin logo, muestra la Z)
+local LOGO_ID = 97991220544918
+-- Pon aqui el ID de un audio PUBLICO (0 = sin sonido)
+local LOAD_SOUND_ID = 0
+
 -- ==================== CLEANUP ====================
 pcall(function() RunService:UnbindFromRenderStep(CAMERA_LOCK_NAME) end)
 local oldGui = playerGui:FindFirstChild("ZeidopHub")
@@ -64,9 +70,24 @@ loadBg.BorderSizePixel = 0
 loadBg.Active = false
 loadBg.Parent = loadGui
 
+-- LOGO GRANDE EN CARGA
+local loadLogo = Instance.new("ImageLabel")
+loadLogo.Size = UDim2.new(0, 90, 0, 90)
+loadLogo.Position = UDim2.new(0.5, -45, 0.10, 0)
+loadLogo.BackgroundTransparency = 1
+loadLogo.Image = LOGO_ID > 0 and ("rbxassetid://" .. LOGO_ID) or ""
+loadLogo.Parent = loadBg
+local loadLogoCorner = Instance.new("UICorner")
+loadLogoCorner.CornerRadius = UDim.new(1, 0)
+loadLogoCorner.Parent = loadLogo
+local loadLogoStroke = Instance.new("UIStroke")
+loadLogoStroke.Color = Color3.fromRGB(160, 120, 255)
+loadLogoStroke.Thickness = 3
+loadLogoStroke.Parent = loadLogo
+
 local loadTitle = Instance.new("TextLabel")
 loadTitle.Size = UDim2.new(0.9, 0, 0, 45)
-loadTitle.Position = UDim2.new(0.05, 0, 0.33, 0)
+loadTitle.Position = UDim2.new(0.05, 0, 0.36, 0)
 loadTitle.BackgroundTransparency = 1
 loadTitle.Text = "zeidop"
 loadTitle.TextColor3 = Color3.fromRGB(160, 120, 255)
@@ -76,7 +97,7 @@ loadTitle.Parent = loadBg
 
 local loadSubtitle = Instance.new("TextLabel")
 loadSubtitle.Size = UDim2.new(0.9, 0, 0, 30)
-loadSubtitle.Position = UDim2.new(0.05, 0, 0.46, 0)
+loadSubtitle.Position = UDim2.new(0.05, 0, 0.50, 0)
 loadSubtitle.BackgroundTransparency = 1
 loadSubtitle.Text = "ohh estas usando un script de zeidop"
 loadSubtitle.TextColor3 = Color3.fromRGB(220, 220, 230)
@@ -86,7 +107,7 @@ loadSubtitle.Parent = loadBg
 
 local loadBarBg = Instance.new("Frame")
 loadBarBg.Size = UDim2.new(0.5, 0, 0, 4)
-loadBarBg.Position = UDim2.new(0.25, 0, 0.56, 0)
+loadBarBg.Position = UDim2.new(0.25, 0, 0.60, 0)
 loadBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 loadBarBg.BorderSizePixel = 0
 loadBarBg.Parent = loadGui
@@ -102,6 +123,16 @@ loadBar.Parent = loadBarBg
 local lbCorner2 = Instance.new("UICorner")
 lbCorner2.CornerRadius = UDim.new(1, 0)
 lbCorner2.Parent = loadBar
+
+-- SONIDO DE CARGA (se corta al destruirse la pantalla)
+if LOAD_SOUND_ID > 0 then
+    local loadSound = Instance.new("Sound")
+    loadSound.Name = "LoadSound"
+    loadSound.SoundId = "rbxassetid://" .. LOAD_SOUND_ID
+    loadSound.Volume = 1
+    loadSound.Parent = loadGui
+    loadSound:Play()
+end
 
 spawn(function()
     local startTime = tick()
@@ -139,6 +170,7 @@ menuStroke.Color = Color3.fromRGB(60, 60, 75)
 menuStroke.Thickness = 1.5
 menuStroke.Parent = menuFrame
 
+-- TITLE BAR
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 30)
 titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
@@ -156,9 +188,20 @@ titleFix.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 titleFix.BorderSizePixel = 0
 titleFix.Parent = titleBar
 
+-- LOGO PEQUENO EN TITLE BAR
+local titleLogo = Instance.new("ImageLabel")
+titleLogo.Size = UDim2.new(0, 22, 0, 22)
+titleLogo.Position = UDim2.new(0, 6, 0, 4)
+titleLogo.BackgroundTransparency = 1
+titleLogo.Image = LOGO_ID > 0 and ("rbxassetid://" .. LOGO_ID) or ""
+titleLogo.Parent = titleBar
+local titleLogoCorner = Instance.new("UICorner")
+titleLogoCorner.CornerRadius = UDim.new(1, 0)
+titleLogoCorner.Parent = titleLogo
+
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -55, 0, 30)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Size = UDim2.new(1, -60, 0, 30)
+titleLabel.Position = UDim2.new(0, 32, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "zeidop hub"
 titleLabel.TextColor3 = Color3.fromRGB(160, 120, 255)
@@ -188,6 +231,7 @@ accentLine.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 accentLine.BorderSizePixel = 0
 accentLine.Parent = menuFrame
 
+-- TAB BAR
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 26)
 tabBar.Position = UDim2.new(0, 8, 0, 36)
@@ -573,11 +617,12 @@ lockStroke.Thickness = 1.5
 lockStroke.Transparency = 0.3
 lockStroke.Parent = lockButton
 
+-- BOTON QUE ABRE EL MENU (CON LOGO)
 local miniMenuBtn = Instance.new("TextButton")
 miniMenuBtn.Size = UDim2.new(0, 46, 0, 46)
 miniMenuBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
 miniMenuBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-miniMenuBtn.Text = "Z"
+miniMenuBtn.Text = LOGO_ID > 0 and "" or "Z"
 miniMenuBtn.TextColor3 = Color3.fromRGB(160, 120, 255)
 miniMenuBtn.TextSize = 18
 miniMenuBtn.Font = Enum.Font.GothamBlack
@@ -588,6 +633,21 @@ miniMenuBtn.Parent = screenGui
 local miniCorner = Instance.new("UICorner")
 miniCorner.CornerRadius = UDim.new(1, 0)
 miniCorner.Parent = miniMenuBtn
+
+local miniStroke = Instance.new("UIStroke")
+miniStroke.Color = Color3.fromRGB(160, 120, 255)
+miniStroke.Thickness = 2
+miniStroke.Parent = miniMenuBtn
+
+local miniLogo = Instance.new("ImageLabel")
+miniLogo.Size = UDim2.new(1, -8, 1, -8)
+miniLogo.Position = UDim2.new(0, 4, 0, 4)
+miniLogo.BackgroundTransparency = 1
+miniLogo.Image = LOGO_ID > 0 and ("rbxassetid://" .. LOGO_ID) or ""
+miniLogo.Parent = miniMenuBtn
+local miniLogoCorner = Instance.new("UICorner")
+miniLogoCorner.CornerRadius = UDim.new(1, 0)
+miniLogoCorner.Parent = miniLogo
 
 local jumpBtn = Instance.new("TextButton")
 jumpBtn.Name = "JumpButton"
@@ -1103,4 +1163,4 @@ delay(2, function()
     menuFrame.Visible = true
 end)
 
-print("Zeidop Hub cargado OK - LOCK + ANTI-STUN + DASH")
+print("Zeidop Hub cargado OK - LOCK + ANTI-STUN + DASH + LOGO")
