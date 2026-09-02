@@ -48,6 +48,65 @@ local LOGO_ID = 97991220544918
 -- Pon aqui el ID de un audio PUBLICO (0 = sin sonido)
 local LOAD_SOUND_ID = 0
 
+-- ==================== GUARDADO DE CAMBIOS ====================
+local HttpService = game:GetService("HttpService")
+local SAVE_FILE = "zeidop_hub_config.json"
+
+local function saveConfig()
+    pcall(function()
+        if writefile then
+            writefile(SAVE_FILE, HttpService:JSONEncode({
+                buttonSize = buttonSize,
+                buttonVisible = buttonVisible,
+                isDraggable = isDraggable,
+                predictEnabled = predictEnabled,
+                predictAmount = predictAmount,
+                predictVertical = predictVertical,
+                predictAcceleration = predictAcceleration,
+                useDistance3D = useDistance3D,
+                smoothMode = smoothMode,
+                smoothAmount = smoothAmount,
+                menuTransparency = menuTransparency,
+                jumpPower = jumpPower,
+                dashForce = dashForce,
+                jumpBtnSize = jumpBtnSize,
+                dashBtnSize = dashBtnSize,
+                dashMultiplier = dashMultiplier,
+                dashEnabled = dashEnabled
+            }))
+        end
+    end)
+end
+
+local function loadConfig()
+    pcall(function()
+        if readfile and isfile and isfile(SAVE_FILE) then
+            local d = HttpService:JSONDecode(readfile(SAVE_FILE))
+            if type(d) == "table" then
+                if type(d.buttonSize) == "number" then buttonSize = d.buttonSize end
+                if type(d.buttonVisible) == "boolean" then buttonVisible = d.buttonVisible end
+                if type(d.isDraggable) == "boolean" then isDraggable = d.isDraggable end
+                if type(d.predictEnabled) == "boolean" then predictEnabled = d.predictEnabled end
+                if type(d.predictAmount) == "number" then predictAmount = d.predictAmount end
+                if type(d.predictVertical) == "boolean" then predictVertical = d.predictVertical end
+                if type(d.predictAcceleration) == "boolean" then predictAcceleration = d.predictAcceleration end
+                if type(d.useDistance3D) == "boolean" then useDistance3D = d.useDistance3D end
+                if type(d.smoothMode) == "boolean" then smoothMode = d.smoothMode end
+                if type(d.smoothAmount) == "number" then smoothAmount = d.smoothAmount end
+                if type(d.menuTransparency) == "number" then menuTransparency = d.menuTransparency end
+                if type(d.jumpPower) == "number" then jumpPower = d.jumpPower end
+                if type(d.dashForce) == "number" then dashForce = d.dashForce end
+                if type(d.jumpBtnSize) == "number" then jumpBtnSize = d.jumpBtnSize end
+                if type(d.dashBtnSize) == "number" then dashBtnSize = d.dashBtnSize end
+                if type(d.dashMultiplier) == "number" then dashMultiplier = d.dashMultiplier end
+                if type(d.dashEnabled) == "boolean" then dashEnabled = d.dashEnabled end
+            end
+        end
+    end)
+end
+
+loadConfig()
+
 -- ==================== CLEANUP ====================
 pcall(function() RunService:UnbindFromRenderStep(CAMERA_LOCK_NAME) end)
 local oldGui = playerGui:FindFirstChild("ZeidopHub")
@@ -1161,6 +1220,57 @@ delay(2, function()
         loadGui:Destroy()
     end
     menuFrame.Visible = true
+end)
+
+-- ==================== APLICAR VALORES CARGADOS ====================
+local function refreshAllVisuals()
+    lockButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
+    lockButton.Visible = buttonVisible
+    sizeLabel.Text = "Tamano: " .. tostring(buttonSize)
+    showBtn.Text = buttonVisible and "Boton: Visible" or "Boton: Oculto"
+    showBtn.BackgroundColor3 = buttonVisible and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    dragBtn.Text = "Arrastrable: " .. (isDraggable and "ON" or "OFF")
+    dragBtn.BackgroundColor3 = isDraggable and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    predictLabel.Text = string.format("Predict: %.2fs", predictAmount)
+    predictToggle.Text = predictEnabled and "ON" or "OFF"
+    predictToggle.BackgroundColor3 = predictEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    predictLabel.TextColor3 = predictEnabled and Color3.fromRGB(255, 220, 130) or Color3.fromRGB(150, 150, 150)
+    predictVertBtn.Text = "Pred Vertical: " .. (predictVertical and "ON" or "OFF")
+    predictVertBtn.BackgroundColor3 = predictVertical and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    predictAccBtn.Text = "Pred Accel: " .. (predictAcceleration and "ON" or "OFF")
+    predictAccBtn.BackgroundColor3 = predictAcceleration and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    smoothBtn.Text = "Smooth: " .. (smoothMode and "ON" or "OFF")
+    smoothBtn.BackgroundColor3 = smoothMode and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    smoothValLabel.Text = string.format("%.2f", smoothAmount)
+    dist3DBtn.Text = "Dist 3D: " .. (useDistance3D and "ON" or "OFF")
+    dist3DBtn.BackgroundColor3 = useDistance3D and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    menuFrame.BackgroundTransparency = menuTransparency
+    transBtn.Text = "Transp: " .. tostring(math.floor(menuTransparency * 100 + 0.5)) .. "%"
+    updateNsToggle()
+    nsJumpLabel.Text = "Jump Power: " .. jumpPower
+    nsDashLabel.Text = "Dash Force: " .. dashForce
+    nsJumpSizeLabel.Text = "Jump Size: " .. jumpBtnSize
+    nsDashSizeLabel.Text = "Dash Size: " .. dashBtnSize
+    jumpBtn.Size = UDim2.new(0, jumpBtnSize, 0, jumpBtnSize)
+    dashFloatBtn.Size = UDim2.new(0, dashBtnSize, 0, dashBtnSize)
+    updateDashLabel()
+    dashToggleBtn.BackgroundColor3 = dashEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    dashToggleBtn.Text = dashEnabled and "ACTIVADO" or "DESACTIVADO"
+end
+
+refreshAllVisuals()
+
+-- Guardar al minimizar el menu
+minBtn.MouseButton1Click:Connect(function()
+    saveConfig()
+end)
+
+-- AUTOGUARDADO cada 5 segundos
+spawn(function()
+    while true do
+        wait(5)
+        saveConfig()
+    end
 end)
 
 print("Zeidop Hub cargado OK - LOCK + ANTI-STUN + DASH + LOGO")
