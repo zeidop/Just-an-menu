@@ -1,10 +1,15 @@
+-- ZEIDOP HUB v3: LOCK + ANTI-STUN + DASH + GUARDADO + PARTE DE LOCK
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local localPlayer = Players.LocalPlayer
-local playerGui = localPlayer:WaitForChild("PlayerGui", 10)
-if not playerGui then return end
-local Camera = workspace.CurrentCamera
+
+local playerGui = localPlayer:WaitForChild("PlayerGui", 15)
+if not playerGui then
+    warn("[Zeidop] PlayerGui no encontrado")
+    return
+end
 
 -- ==================== CONFIG LOCK ====================
 local targetLock = false
@@ -24,6 +29,7 @@ local useDistance3D = false
 local smoothMode = false
 local smoothAmount = 0.35
 local menuTransparency = 0
+local lockPart = "torso"
 local CAMERA_LOCK_NAME = "ZeidopCameraLock"
 
 -- ==================== CONFIG ANTI-STUN ====================
@@ -34,45 +40,44 @@ local dashForce = 60
 local stunLocked = false
 local jumpBtnSize = 62
 local dashBtnSize = 62
-local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-local humanoid = character:FindFirstChildOfClass("Humanoid")
-local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+
+local STUN_STATES = {
+    [Enum.HumanoidStateType.FallingDown] = true,
+    [Enum.HumanoidStateType.GettingUp] = true,
+    [Enum.HumanoidStateType.PlatformStanding] = true,
+    [Enum.HumanoidStateType.Ragdoll] = true,
+    [Enum.HumanoidStateType.Physics] = true,
+}
+
+local character = nil
+local humanoid = nil
+local rootPart = nil
+local function setChar(c)
+    character = c
+    humanoid = c and c:FindFirstChildOfClass("Humanoid") or nil
+    rootPart = c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")) or nil
+end
+setChar(localPlayer.Character)
 
 -- ==================== CONFIG DASH ====================
 local dashMultiplier = 1.5
 local dashEnabled = true
 
--- ==================== LOGO Y SONIDO ====================
--- Pon aqui el ID de tu imagen subida a Roblox (0 = sin logo, muestra la Z)
-local LOGO_ID = 97991220544918
--- Pon aqui el ID de un audio PUBLICO (0 = sin sonido)
-local LOAD_SOUND_ID = 0
-
 -- ==================== GUARDADO DE CAMBIOS ====================
-local HttpService = game:GetService("HttpService")
 local SAVE_FILE = "zeidop_hub_config.json"
 
 local function saveConfig()
     pcall(function()
         if writefile then
             writefile(SAVE_FILE, HttpService:JSONEncode({
-                buttonSize = buttonSize,
-                buttonVisible = buttonVisible,
-                isDraggable = isDraggable,
-                predictEnabled = predictEnabled,
-                predictAmount = predictAmount,
-                predictVertical = predictVertical,
-                predictAcceleration = predictAcceleration,
-                useDistance3D = useDistance3D,
-                smoothMode = smoothMode,
-                smoothAmount = smoothAmount,
-                menuTransparency = menuTransparency,
-                jumpPower = jumpPower,
-                dashForce = dashForce,
-                jumpBtnSize = jumpBtnSize,
-                dashBtnSize = dashBtnSize,
-                dashMultiplier = dashMultiplier,
-                dashEnabled = dashEnabled
+                buttonSize = buttonSize, buttonVisible = buttonVisible, isDraggable = isDraggable,
+                predictEnabled = predictEnabled, predictAmount = predictAmount,
+                predictVertical = predictVertical, predictAcceleration = predictAcceleration,
+                useDistance3D = useDistance3D, smoothMode = smoothMode, smoothAmount = smoothAmount,
+                menuTransparency = menuTransparency, jumpPower = jumpPower, dashForce = dashForce,
+                jumpBtnSize = jumpBtnSize, dashBtnSize = dashBtnSize,
+                dashMultiplier = dashMultiplier, dashEnabled = dashEnabled,
+                lockPart = lockPart
             }))
         end
     end)
@@ -100,6 +105,7 @@ local function loadConfig()
                 if type(d.dashBtnSize) == "number" then dashBtnSize = d.dashBtnSize end
                 if type(d.dashMultiplier) == "number" then dashMultiplier = d.dashMultiplier end
                 if type(d.dashEnabled) == "boolean" then dashEnabled = d.dashEnabled end
+                if type(d.lockPart) == "string" then lockPart = d.lockPart end
             end
         end
     end)
@@ -129,24 +135,9 @@ loadBg.BorderSizePixel = 0
 loadBg.Active = false
 loadBg.Parent = loadGui
 
--- LOGO GRANDE EN CARGA
-local loadLogo = Instance.new("ImageLabel")
-loadLogo.Size = UDim2.new(0, 90, 0, 90)
-loadLogo.Position = UDim2.new(0.5, -45, 0.10, 0)
-loadLogo.BackgroundTransparency = 1
-loadLogo.Image = LOGO_ID > 0 and ("rbxassetid://" .. LOGO_ID) or ""
-loadLogo.Parent = loadBg
-local loadLogoCorner = Instance.new("UICorner")
-loadLogoCorner.CornerRadius = UDim.new(1, 0)
-loadLogoCorner.Parent = loadLogo
-local loadLogoStroke = Instance.new("UIStroke")
-loadLogoStroke.Color = Color3.fromRGB(160, 120, 255)
-loadLogoStroke.Thickness = 3
-loadLogoStroke.Parent = loadLogo
-
 local loadTitle = Instance.new("TextLabel")
 loadTitle.Size = UDim2.new(0.9, 0, 0, 45)
-loadTitle.Position = UDim2.new(0.05, 0, 0.36, 0)
+loadTitle.Position = UDim2.new(0.05, 0, 0.33, 0)
 loadTitle.BackgroundTransparency = 1
 loadTitle.Text = "zeidop"
 loadTitle.TextColor3 = Color3.fromRGB(160, 120, 255)
@@ -156,7 +147,7 @@ loadTitle.Parent = loadBg
 
 local loadSubtitle = Instance.new("TextLabel")
 loadSubtitle.Size = UDim2.new(0.9, 0, 0, 30)
-loadSubtitle.Position = UDim2.new(0.05, 0, 0.50, 0)
+loadSubtitle.Position = UDim2.new(0.05, 0, 0.46, 0)
 loadSubtitle.BackgroundTransparency = 1
 loadSubtitle.Text = "ohh estas usando un script de zeidop"
 loadSubtitle.TextColor3 = Color3.fromRGB(220, 220, 230)
@@ -166,32 +157,18 @@ loadSubtitle.Parent = loadBg
 
 local loadBarBg = Instance.new("Frame")
 loadBarBg.Size = UDim2.new(0.5, 0, 0, 4)
-loadBarBg.Position = UDim2.new(0.25, 0, 0.60, 0)
+loadBarBg.Position = UDim2.new(0.25, 0, 0.56, 0)
 loadBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 loadBarBg.BorderSizePixel = 0
 loadBarBg.Parent = loadGui
-local lbCorner = Instance.new("UICorner")
-lbCorner.CornerRadius = UDim.new(1, 0)
-lbCorner.Parent = loadBarBg
+Instance.new("UICorner", loadBarBg).CornerRadius = UDim.new(1, 0)
 
 local loadBar = Instance.new("Frame")
 loadBar.Size = UDim2.new(0, 0, 1, 0)
 loadBar.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 loadBar.BorderSizePixel = 0
 loadBar.Parent = loadBarBg
-local lbCorner2 = Instance.new("UICorner")
-lbCorner2.CornerRadius = UDim.new(1, 0)
-lbCorner2.Parent = loadBar
-
--- SONIDO DE CARGA (se corta al destruirse la pantalla)
-if LOAD_SOUND_ID > 0 then
-    local loadSound = Instance.new("Sound")
-    loadSound.Name = "LoadSound"
-    loadSound.SoundId = "rbxassetid://" .. LOAD_SOUND_ID
-    loadSound.Volume = 1
-    loadSound.Parent = loadGui
-    loadSound:Play()
-end
+Instance.new("UICorner", loadBar).CornerRadius = UDim.new(1, 0)
 
 spawn(function()
     local startTime = tick()
@@ -211,7 +188,7 @@ screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 210, 0, 250)
+menuFrame.Size = UDim2.new(0, 210, 0, 290)
 menuFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 menuFrame.BackgroundTransparency = menuTransparency
@@ -219,27 +196,18 @@ menuFrame.BorderSizePixel = 0
 menuFrame.Active = true
 menuFrame.Visible = false
 menuFrame.Parent = screenGui
-
-local menuCorner = Instance.new("UICorner")
-menuCorner.CornerRadius = UDim.new(0, 12)
-menuCorner.Parent = menuFrame
-
+Instance.new("UICorner", menuFrame).CornerRadius = UDim.new(0, 12)
 local menuStroke = Instance.new("UIStroke")
 menuStroke.Color = Color3.fromRGB(60, 60, 75)
 menuStroke.Thickness = 1.5
 menuStroke.Parent = menuFrame
 
--- TITLE BAR
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 30)
 titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = menuFrame
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleBar
-
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 12)
 local titleFix = Instance.new("Frame")
 titleFix.Size = UDim2.new(1, 0, 0, 12)
 titleFix.Position = UDim2.new(0, 0, 1, -12)
@@ -247,20 +215,9 @@ titleFix.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 titleFix.BorderSizePixel = 0
 titleFix.Parent = titleBar
 
--- LOGO PEQUENO EN TITLE BAR
-local titleLogo = Instance.new("ImageLabel")
-titleLogo.Size = UDim2.new(0, 22, 0, 22)
-titleLogo.Position = UDim2.new(0, 6, 0, 4)
-titleLogo.BackgroundTransparency = 1
-titleLogo.Image = LOGO_ID > 0 and ("rbxassetid://" .. LOGO_ID) or ""
-titleLogo.Parent = titleBar
-local titleLogoCorner = Instance.new("UICorner")
-titleLogoCorner.CornerRadius = UDim.new(1, 0)
-titleLogoCorner.Parent = titleLogo
-
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -60, 0, 30)
-titleLabel.Position = UDim2.new(0, 32, 0, 0)
+titleLabel.Size = UDim2.new(1, -55, 0, 30)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "zeidop hub"
 titleLabel.TextColor3 = Color3.fromRGB(160, 120, 255)
@@ -279,9 +236,7 @@ minBtn.TextSize = 16
 minBtn.Font = Enum.Font.GothamBold
 minBtn.BorderSizePixel = 0
 minBtn.Parent = titleBar
-local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(0, 6)
-minCorner.Parent = minBtn
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
 
 local accentLine = Instance.new("Frame")
 accentLine.Size = UDim2.new(1, 0, 0, 2)
@@ -290,7 +245,6 @@ accentLine.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 accentLine.BorderSizePixel = 0
 accentLine.Parent = menuFrame
 
--- TAB BAR
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 26)
 tabBar.Position = UDim2.new(0, 8, 0, 36)
@@ -298,7 +252,6 @@ tabBar.BackgroundTransparency = 1
 tabBar.Parent = menuFrame
 
 local tabW = 62
-
 local tabLock = Instance.new("TextButton")
 tabLock.Size = UDim2.new(0, tabW, 1, 0)
 tabLock.Position = UDim2.new(0, 0, 0, 0)
@@ -309,9 +262,7 @@ tabLock.TextSize = 11
 tabLock.Font = Enum.Font.GothamBold
 tabLock.BorderSizePixel = 0
 tabLock.Parent = tabBar
-local tlCorner = Instance.new("UICorner")
-tlCorner.CornerRadius = UDim.new(0, 6)
-tlCorner.Parent = tabLock
+Instance.new("UICorner", tabLock).CornerRadius = UDim.new(0, 6)
 
 local tabNoStun = Instance.new("TextButton")
 tabNoStun.Size = UDim2.new(0, tabW, 1, 0)
@@ -323,9 +274,7 @@ tabNoStun.TextSize = 9
 tabNoStun.Font = Enum.Font.GothamBold
 tabNoStun.BorderSizePixel = 0
 tabNoStun.Parent = tabBar
-local tnsCorner = Instance.new("UICorner")
-tnsCorner.CornerRadius = UDim.new(0, 6)
-tnsCorner.Parent = tabNoStun
+Instance.new("UICorner", tabNoStun).CornerRadius = UDim.new(0, 6)
 
 local tabDash = Instance.new("TextButton")
 tabDash.Size = UDim2.new(0, tabW, 1, 0)
@@ -337,9 +286,7 @@ tabDash.TextSize = 11
 tabDash.Font = Enum.Font.GothamBold
 tabDash.BorderSizePixel = 0
 tabDash.Parent = tabBar
-local tdCorner = Instance.new("UICorner")
-tdCorner.CornerRadius = UDim.new(0, 6)
-tdCorner.Parent = tabDash
+Instance.new("UICorner", tabDash).CornerRadius = UDim.new(0, 6)
 
 local contentArea = Instance.new("Frame")
 contentArea.Size = UDim2.new(1, -16, 1, -70)
@@ -365,9 +312,7 @@ local function halfBtn(text, y, isRight, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = lockPage
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 6)
-    c.Parent = b
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
     return b
 end
 
@@ -396,31 +341,24 @@ local function smallBtn(text, x, y, w, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = lockPage
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 5)
-    c.Parent = b
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
     return b
 end
 
 local showBtn = halfBtn("Boton: Visible", 0, false, Color3.fromRGB(45, 160, 70))
 local dragBtn = halfBtn("Arrastrable: ON", 0, true, Color3.fromRGB(45, 160, 70))
-
 local sizeLabel = smallLabel("Tamano: 55", 30)
 local sizeMinus = smallBtn("-", 110, 28, 28)
 local sizePlus = smallBtn("+", 142, 28, 28)
-
 local predictLabel = smallLabel("Predict: 0.18s", 58, Color3.fromRGB(255, 220, 130))
 local predictMinus = smallBtn("-", 80, 56, 28)
 local predictPlus = smallBtn("+", 112, 56, 28)
 local predictToggle = smallBtn("ON", 144, 56, 28, Color3.fromRGB(45, 160, 70))
-
 local predictVertBtn = halfBtn("Pred Vertical: OFF", 86, false, Color3.fromRGB(160, 50, 50))
 local predictAccBtn = halfBtn("Pred Accel: OFF", 86, true, Color3.fromRGB(160, 50, 50))
-
 local smoothBtn = halfBtn("Smooth: OFF", 114, false, Color3.fromRGB(160, 50, 50))
 local smoothMinus = smallBtn("-", 99, 112, 28)
 local smoothPlus = smallBtn("+", 131, 112, 28)
-
 local smoothValLabel = Instance.new("TextLabel")
 smoothValLabel.Size = UDim2.new(0, 30, 0, 16)
 smoothValLabel.Position = UDim2.new(0, 163, 0, 114)
@@ -431,9 +369,38 @@ smoothValLabel.TextSize = 10
 smoothValLabel.Font = Enum.Font.Gotham
 smoothValLabel.TextXAlignment = Enum.TextXAlignment.Left
 smoothValLabel.Parent = lockPage
-
 local dist3DBtn = halfBtn("Dist 3D: OFF", 142, false, Color3.fromRGB(160, 50, 50))
 local transBtn = halfBtn("Transp: 0%", 142, true, Color3.fromRGB(45, 45, 60))
+
+-- ==================== SECCION APUNTADO (NUEVA) ====================
+local aimSep = Instance.new("TextLabel")
+aimSep.Size = UDim2.new(1, 0, 0, 14)
+aimSep.Position = UDim2.new(0, 0, 0, 172)
+aimSep.BackgroundTransparency = 1
+aimSep.Text = "--- APUNTADO ---"
+aimSep.TextColor3 = Color3.fromRGB(160, 120, 255)
+aimSep.TextSize = 9
+aimSep.Font = Enum.Font.GothamBold
+aimSep.Parent = lockPage
+
+local partBtn = Instance.new("TextButton")
+partBtn.Size = UDim2.new(1, 0, 0, 24)
+partBtn.Position = UDim2.new(0, 0, 0, 188)
+partBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 220)
+partBtn.Text = "PARTE: TORSO"
+partBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+partBtn.TextSize = 10
+partBtn.Font = Enum.Font.GothamBold
+partBtn.BorderSizePixel = 0
+partBtn.Parent = lockPage
+Instance.new("UICorner", partBtn).CornerRadius = UDim.new(0, 6)
+
+partBtn.MouseButton1Click:Connect(function()
+    lockPart = (lockPart == "torso") and "head" or "torso"
+    partBtn.Text = "PARTE: " .. (lockPart == "head" and "CABEZA" or "TORSO")
+    partBtn.BackgroundColor3 = lockPart == "head" and Color3.fromRGB(160, 50, 50) or Color3.fromRGB(70, 130, 220)
+    saveConfig()
+end)
 
 -- ==================== NO STUN PAGE ====================
 local noStunPage = Instance.new("Frame")
@@ -453,9 +420,7 @@ local function nsBtn(text, y, isRight, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = noStunPage
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 6)
-    c.Parent = b
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
     return b
 end
 
@@ -484,9 +449,7 @@ local function nsSmallBtn(text, x, y, w, color)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.Parent = noStunPage
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 5)
-    c.Parent = b
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
     return b
 end
 
@@ -500,28 +463,22 @@ nsToggleBtn.TextSize = 11
 nsToggleBtn.Font = Enum.Font.GothamBold
 nsToggleBtn.BorderSizePixel = 0
 nsToggleBtn.Parent = noStunPage
-local nstCorner = Instance.new("UICorner")
-nstCorner.CornerRadius = UDim.new(0, 6)
-nstCorner.Parent = nsToggleBtn
+Instance.new("UICorner", nsToggleBtn).CornerRadius = UDim.new(0, 6)
 
 local nsJumpLabel = nsLabel("Jump Power: 50", 30)
 local nsJumpMinus = nsSmallBtn("-", 75, 28, 24)
 local nsJumpPlus = nsSmallBtn("+", 103, 28, 24)
 local nsJumpGenBtn = nsSmallBtn("GEN", 131, 28, 32, Color3.fromRGB(80, 60, 140))
-
 local nsDashLabel = nsLabel("Dash Force: 60", 54)
 local nsDashMinus = nsSmallBtn("-", 75, 52, 24)
 local nsDashPlus = nsSmallBtn("+", 103, 52, 24)
 local nsDashGenBtn = nsSmallBtn("GEN", 131, 52, 32, Color3.fromRGB(70, 130, 220))
-
 local nsJumpSizeLabel = nsLabel("Jump Size: 62", 78)
 local nsJumpSizeMinus = nsSmallBtn("-", 75, 76, 24)
 local nsJumpSizePlus = nsSmallBtn("+", 103, 76, 24)
-
 local nsDashSizeLabel = nsLabel("Dash Size: 62", 102)
 local nsDashSizeMinus = nsSmallBtn("-", 75, 100, 24)
 local nsDashSizePlus = nsSmallBtn("+", 103, 100, 24)
-
 local nsLockBtn = Instance.new("TextButton")
 nsLockBtn.Size = UDim2.new(1, 0, 0, 22)
 nsLockBtn.Position = UDim2.new(0, 0, 0, 128)
@@ -532,9 +489,7 @@ nsLockBtn.TextSize = 10
 nsLockBtn.Font = Enum.Font.GothamBold
 nsLockBtn.BorderSizePixel = 0
 nsLockBtn.Parent = noStunPage
-local nslCorner = Instance.new("UICorner")
-nslCorner.CornerRadius = UDim.new(0, 6)
-nslCorner.Parent = nsLockBtn
+Instance.new("UICorner", nsLockBtn).CornerRadius = UDim.new(0, 6)
 
 local nsInfoLabel = Instance.new("TextLabel")
 nsInfoLabel.Size = UDim2.new(1, 0, 0, 20)
@@ -586,9 +541,7 @@ dashMinusBtn.TextSize = 16
 dashMinusBtn.Font = Enum.Font.GothamBold
 dashMinusBtn.BorderSizePixel = 0
 dashMinusBtn.Parent = dashPage
-local dmbCorner = Instance.new("UICorner")
-dmbCorner.CornerRadius = UDim.new(0, 6)
-dmbCorner.Parent = dashMinusBtn
+Instance.new("UICorner", dashMinusBtn).CornerRadius = UDim.new(0, 6)
 
 local dashPlusBtn = Instance.new("TextButton")
 dashPlusBtn.Size = UDim2.new(0.5, -4, 0, 28)
@@ -600,9 +553,7 @@ dashPlusBtn.TextSize = 16
 dashPlusBtn.Font = Enum.Font.GothamBold
 dashPlusBtn.BorderSizePixel = 0
 dashPlusBtn.Parent = dashPage
-local dpbCorner = Instance.new("UICorner")
-dpbCorner.CornerRadius = UDim.new(0, 6)
-dpbCorner.Parent = dashPlusBtn
+Instance.new("UICorner", dashPlusBtn).CornerRadius = UDim.new(0, 6)
 
 local dashToggleBtn = Instance.new("TextButton")
 dashToggleBtn.Size = UDim2.new(1, 0, 0, 28)
@@ -614,9 +565,7 @@ dashToggleBtn.TextSize = 12
 dashToggleBtn.Font = Enum.Font.GothamBold
 dashToggleBtn.BorderSizePixel = 0
 dashToggleBtn.Parent = dashPage
-local dtbCorner = Instance.new("UICorner")
-dtbCorner.CornerRadius = UDim.new(0, 6)
-dtbCorner.Parent = dashToggleBtn
+Instance.new("UICorner", dashToggleBtn).CornerRadius = UDim.new(0, 6)
 
 local dashDesc = Instance.new("TextLabel")
 dashDesc.Size = UDim2.new(1, -10, 0, 50)
@@ -666,22 +615,20 @@ lockButton.TextSize = 14
 lockButton.Font = Enum.Font.GothamBold
 lockButton.BorderSizePixel = 0
 lockButton.Active = true
+lockButton.Visible = buttonVisible
 lockButton.Parent = screenGui
-local lockCorner = Instance.new("UICorner")
-lockCorner.CornerRadius = UDim.new(1, 0)
-lockCorner.Parent = lockButton
+Instance.new("UICorner", lockButton).CornerRadius = UDim.new(1, 0)
 local lockStroke = Instance.new("UIStroke")
 lockStroke.Color = Color3.fromRGB(0, 0, 0)
 lockStroke.Thickness = 1.5
 lockStroke.Transparency = 0.3
 lockStroke.Parent = lockButton
 
--- BOTON QUE ABRE EL MENU (CON LOGO)
 local miniMenuBtn = Instance.new("TextButton")
 miniMenuBtn.Size = UDim2.new(0, 46, 0, 46)
 miniMenuBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
 miniMenuBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-miniMenuBtn.Text = LOGO_ID > 0 and "" or "Z"
+miniMenuBtn.Text = "Z"
 miniMenuBtn.TextColor3 = Color3.fromRGB(160, 120, 255)
 miniMenuBtn.TextSize = 18
 miniMenuBtn.Font = Enum.Font.GothamBlack
@@ -689,24 +636,7 @@ miniMenuBtn.BorderSizePixel = 0
 miniMenuBtn.Visible = false
 miniMenuBtn.Active = true
 miniMenuBtn.Parent = screenGui
-local miniCorner = Instance.new("UICorner")
-miniCorner.CornerRadius = UDim.new(1, 0)
-miniCorner.Parent = miniMenuBtn
-
-local miniStroke = Instance.new("UIStroke")
-miniStroke.Color = Color3.fromRGB(160, 120, 255)
-miniStroke.Thickness = 2
-miniStroke.Parent = miniMenuBtn
-
-local miniLogo = Instance.new("ImageLabel")
-miniLogo.Size = UDim2.new(1, -8, 1, -8)
-miniLogo.Position = UDim2.new(0, 4, 0, 4)
-miniLogo.BackgroundTransparency = 1
-miniLogo.Image = LOGO_ID > 0 and ("rbxassetid://" .. LOGO_ID) or ""
-miniLogo.Parent = miniMenuBtn
-local miniLogoCorner = Instance.new("UICorner")
-miniLogoCorner.CornerRadius = UDim.new(1, 0)
-miniLogoCorner.Parent = miniLogo
+Instance.new("UICorner", miniMenuBtn).CornerRadius = UDim.new(1, 0)
 
 local jumpBtn = Instance.new("TextButton")
 jumpBtn.Name = "JumpButton"
@@ -720,9 +650,7 @@ jumpBtn.Font = Enum.Font.GothamBold
 jumpBtn.BorderSizePixel = 0
 jumpBtn.Visible = false
 jumpBtn.Parent = screenGui
-local jbCorner = Instance.new("UICorner")
-jbCorner.CornerRadius = UDim.new(1, 0)
-jbCorner.Parent = jumpBtn
+Instance.new("UICorner", jumpBtn).CornerRadius = UDim.new(1, 0)
 local jbStroke = Instance.new("UIStroke")
 jbStroke.Color = Color3.fromRGB(0, 0, 0)
 jbStroke.Thickness = 1.5
@@ -741,9 +669,7 @@ dashFloatBtn.Font = Enum.Font.GothamBold
 dashFloatBtn.BorderSizePixel = 0
 dashFloatBtn.Visible = false
 dashFloatBtn.Parent = screenGui
-local dfCorner = Instance.new("UICorner")
-dfCorner.CornerRadius = UDim.new(1, 0)
-dfCorner.Parent = dashFloatBtn
+Instance.new("UICorner", dashFloatBtn).CornerRadius = UDim.new(1, 0)
 local dfStroke = Instance.new("UIStroke")
 dfStroke.Color = Color3.fromRGB(0, 0, 0)
 dfStroke.Thickness = 1.5
@@ -788,21 +714,25 @@ makeDraggable(dashFloatBtn, function() return not stunLocked end)
 local function jump()
     if not humanoid or not rootPart or not jumping then return end
     jumping = false
-    humanoid.PlatformStand = true
-    rootPart.Velocity = Vector3.zero
-    task.wait()
-    rootPart.Velocity = Vector3.new(0, jumpPower, 0)
-    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    task.wait(0.05)
-    humanoid.PlatformStand = false
+    pcall(function()
+        humanoid.PlatformStand = true
+        rootPart.Velocity = Vector3.zero
+        task.wait()
+        rootPart.Velocity = Vector3.new(0, jumpPower, 0)
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        task.wait(0.05)
+        humanoid.PlatformStand = false
+    end)
     task.wait(1.2)
     jumping = true
 end
 
 local function dash()
     if not humanoid or not rootPart then return end
-    local lookVector = rootPart.CFrame.LookVector
-    rootPart.Velocity = Vector3.new(lookVector.X * dashForce, rootPart.Velocity.Y, lookVector.Z * dashForce)
+    pcall(function()
+        local lookVector = rootPart.CFrame.LookVector
+        rootPart.Velocity = Vector3.new(lookVector.X * dashForce, rootPart.Velocity.Y, lookVector.Z * dashForce)
+    end)
 end
 
 -- ==================== LOGICA LOCK ====================
@@ -967,6 +897,7 @@ minBtn.MouseButton1Click:Connect(function()
     menuFrame.Visible = false
     miniMenuBtn.Visible = true
     miniMenuBtn.Position = menuFrame.Position
+    saveConfig()
 end)
 
 miniMenuBtn.MouseButton1Click:Connect(function()
@@ -1055,13 +986,8 @@ nsLockBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-jumpBtn.MouseButton1Click:Connect(function()
-    jump()
-end)
-
-dashFloatBtn.MouseButton1Click:Connect(function()
-    dash()
-end)
+jumpBtn.MouseButton1Click:Connect(function() jump() end)
+dashFloatBtn.MouseButton1Click:Connect(function() dash() end)
 
 -- ==================== EVENTOS DASH ====================
 local function updateDashLabel()
@@ -1077,11 +1003,13 @@ local function hookDash()
         if not dashEnabled then return end
         if child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
             wait()
-            if child:IsA("BodyVelocity") then
-                child.Velocity = child.Velocity * dashMultiplier
-            elseif child:IsA("LinearVelocity") then
-                child.VectorVelocity = child.VectorVelocity * dashMultiplier
-            end
+            pcall(function()
+                if child:IsA("BodyVelocity") then
+                    child.Velocity = child.Velocity * dashMultiplier
+                elseif child:IsA("LinearVelocity") then
+                    child.VectorVelocity = child.VectorVelocity * dashMultiplier
+                end
+            end)
         end
     end)
 end
@@ -1126,14 +1054,14 @@ end)
 
 -- ==================== HEARTBEAT ANTI-STUN ====================
 RunService.Heartbeat:Connect(function()
-    if not antiStunEnabled or not humanoid or not jumping then return end
+    if not antiStunEnabled or not humanoid or not humanoid.Parent or not jumping then return end
     local state = humanoid:GetState()
-    if state == Enum.HumanoidStateType.FallingDown or state == Enum.HumanoidStateType.GettingUp or state == Enum.HumanoidStateType.Stunned then
+    if STUN_STATES[state] then
         jump()
     end
 end)
 
--- ==================== LOOP CAMERA LOCK ====================
+-- ==================== LOOP CAMERA LOCK (CON PARTE ELEGIBLE) ====================
 local lastDeltaTime = 1/60
 local function cameraLockStep(dt)
     lastDeltaTime = dt or (1/60)
@@ -1146,7 +1074,13 @@ local function cameraLockStep(dt)
         resetLock()
         return
     end
-    local targetPos = root.Position
+    -- Elegir parte del cuerpo a apuntar
+    local aimPart = root
+    if lockPart == "head" then
+        local head = lockedPlayer.Character:FindFirstChild("Head")
+        if head then aimPart = head end
+    end
+    local targetPos = aimPart.Position
     local aimPosition = targetPos
     if predictEnabled then
         local currentVelocity = Vector3.new(0, 0, 0)
@@ -1201,9 +1135,7 @@ RunService:BindToRenderStep(CAMERA_LOCK_NAME, Enum.RenderPriority.Camera.Value +
 
 -- ==================== SEGURIDAD ====================
 localPlayer.CharacterAdded:Connect(function(c)
-    character = c
-    humanoid = c:WaitForChild("Humanoid")
-    rootPart = c:WaitForChild("HumanoidRootPart", 3) or c:FindFirstChild("Torso")
+    setChar(c)
     jumping = true
     wait(0.5)
     if targetLock then resetLock() end
@@ -1214,15 +1146,7 @@ if localPlayer.Character then
     hookDash()
 end
 
--- ==================== MOSTRAR MENU ====================
-delay(2, function()
-    if loadGui and loadGui.Parent then
-        loadGui:Destroy()
-    end
-    menuFrame.Visible = true
-end)
-
--- ==================== APLICAR VALORES CARGADOS ====================
+-- ==================== APLICAR VALORES GUARDADOS ====================
 local function refreshAllVisuals()
     lockButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
     lockButton.Visible = buttonVisible
@@ -1244,6 +1168,8 @@ local function refreshAllVisuals()
     smoothValLabel.Text = string.format("%.2f", smoothAmount)
     dist3DBtn.Text = "Dist 3D: " .. (useDistance3D and "ON" or "OFF")
     dist3DBtn.BackgroundColor3 = useDistance3D and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+    partBtn.Text = "PARTE: " .. (lockPart == "head" and "CABEZA" or "TORSO")
+    partBtn.BackgroundColor3 = lockPart == "head" and Color3.fromRGB(160, 50, 50) or Color3.fromRGB(70, 130, 220)
     menuFrame.BackgroundTransparency = menuTransparency
     transBtn.Text = "Transp: " .. tostring(math.floor(menuTransparency * 100 + 0.5)) .. "%"
     updateNsToggle()
@@ -1260,11 +1186,6 @@ end
 
 refreshAllVisuals()
 
--- Guardar al minimizar el menu
-minBtn.MouseButton1Click:Connect(function()
-    saveConfig()
-end)
-
 -- AUTOGUARDADO cada 5 segundos
 spawn(function()
     while true do
@@ -1273,4 +1194,12 @@ spawn(function()
     end
 end)
 
-print("Zeidop Hub cargado OK - LOCK + ANTI-STUN + DASH + LOGO")
+-- ==================== MOSTRAR MENU ====================
+delay(2, function()
+    if loadGui and loadGui.Parent then
+        loadGui:Destroy()
+    end
+    menuFrame.Visible = true
+end)
+
+print("Zeidop Hub v3 cargado OK - LOCK + PARTE + ANTI-STUN + DASH + GUARDADO")
