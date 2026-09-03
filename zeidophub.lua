@@ -1,10 +1,8 @@
--- ZEIDOP HUB FINAL: LOCK + STUN + DASH + LOGO + GUARDADO + CERRAR
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 local localPlayer = Players.LocalPlayer
-local playerGui = localPlayer:WaitForChild("PlayerGui", 15)
+local playerGui = localPlayer:WaitForChild("PlayerGui", 10)
 if not playerGui then return end
 local Camera = workspace.CurrentCamera
 -- CONFIG LOCK
@@ -25,12 +23,11 @@ local useDistance3D = false
 local smoothMode = false
 local smoothAmount = 0.35
 local menuTransparency = 0
-local lockPart = "torso"
-local lockKey = Enum.KeyCode.L
-local listeningForKey = false
-local scriptClosed = false
 local CAMERA_LOCK_NAME = "ZeidopCameraLock"
--- CONFIG ANTI-STUN (init seguro, no cuelga)
+-- CONFIG LISTAS
+local whitelist = {}
+local blacklist = {}
+-- CONFIG ANTI-STUN
 local antiStunEnabled = false
 local jumping = true
 local jumpPower = 50
@@ -38,15 +35,9 @@ local dashForce = 60
 local stunLocked = false
 local jumpBtnSize = 62
 local dashBtnSize = 62
-local character = nil
-local humanoid = nil
-local rootPart = nil
-local function setChar(c)
-character = c
-humanoid = c and c:FindFirstChildOfClass("Humanoid") or nil
-rootPart = c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Torso")) or nil
-end
-setChar(localPlayer.Character)
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
 -- CONFIG DASH
 local dashMultiplier = 1.5
 local dashEnabled = true
@@ -54,6 +45,7 @@ local dashEnabled = true
 local LOGO_ID = 97991220544918
 local LOAD_SOUND_ID = 0
 -- GUARDADO
+local HttpService = game:GetService("HttpService")
 local SAVE_FILE = "zeidop_hub_config.json"
 local function saveConfig()
 pcall(function()
@@ -65,8 +57,7 @@ predictVertical = predictVertical, predictAcceleration = predictAcceleration,
 useDistance3D = useDistance3D, smoothMode = smoothMode, smoothAmount = smoothAmount,
 menuTransparency = menuTransparency, jumpPower = jumpPower, dashForce = dashForce,
 jumpBtnSize = jumpBtnSize, dashBtnSize = dashBtnSize,
-dashMultiplier = dashMultiplier, dashEnabled = dashEnabled,
-lockPart = lockPart, lockKeyName = lockKey.Name
+dashMultiplier = dashMultiplier, dashEnabled = dashEnabled
 }))
 end
 end)
@@ -93,10 +84,6 @@ if type(d.jumpBtnSize) == "number" then jumpBtnSize = d.jumpBtnSize end
 if type(d.dashBtnSize) == "number" then dashBtnSize = d.dashBtnSize end
 if type(d.dashMultiplier) == "number" then dashMultiplier = d.dashMultiplier end
 if type(d.dashEnabled) == "boolean" then dashEnabled = d.dashEnabled end
-if type(d.lockPart) == "string" then lockPart = d.lockPart end
-if type(d.lockKeyName) == "string" then
-pcall(function() lockKey = Enum.KeyCode[d.lockKeyName] end)
-end
 end
 end
 end)
@@ -186,7 +173,7 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 210, 0, 290)
+menuFrame.Size = UDim2.new(0, 210, 0, 250)
 menuFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 menuFrame.BackgroundTransparency = menuTransparency
@@ -199,7 +186,6 @@ local menuStroke = Instance.new("UIStroke")
 menuStroke.Color = Color3.fromRGB(60, 60, 75)
 menuStroke.Thickness = 1.5
 menuStroke.Parent = menuFrame
--- TITLE BAR
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 30)
 titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
@@ -220,7 +206,7 @@ titleLogo.Image = LOGO_ID > 0 and ("rbxassetid://" .. LOGO_ID) or ""
 titleLogo.Parent = titleBar
 Instance.new("UICorner", titleLogo).CornerRadius = UDim.new(1, 0)
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -80, 0, 30)
+titleLabel.Size = UDim2.new(1, -60, 0, 30)
 titleLabel.Position = UDim2.new(0, 32, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "zeidop hub"
@@ -229,18 +215,6 @@ titleLabel.TextSize = 14
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = titleBar
--- BOTON CERRAR (X)
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 24, 0, 24)
-closeBtn.Position = UDim2.new(1, -54, 0, 3)
-closeBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.TextSize = 14
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.BorderSizePixel = 0
-closeBtn.Parent = titleBar
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 local minBtn = Instance.new("TextButton")
 minBtn.Size = UDim2.new(0, 24, 0, 24)
 minBtn.Position = UDim2.new(1, -28, 0, 3)
@@ -258,29 +232,30 @@ accentLine.Position = UDim2.new(0, 0, 0, 30)
 accentLine.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 accentLine.BorderSizePixel = 0
 accentLine.Parent = menuFrame
--- TAB BAR
+-- TAB BAR (4 TABS)
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 26)
 tabBar.Position = UDim2.new(0, 8, 0, 36)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = menuFrame
-local tabW = 62
+local tabW = 46
+local tabGap = 3
 local tabLock = Instance.new("TextButton")
 tabLock.Size = UDim2.new(0, tabW, 1, 0)
 tabLock.Position = UDim2.new(0, 0, 0, 0)
 tabLock.BackgroundColor3 = Color3.fromRGB(80, 60, 140)
 tabLock.Text = "LOCK"
 tabLock.TextColor3 = Color3.fromRGB(255, 255, 255)
-tabLock.TextSize = 11
+tabLock.TextSize = 9
 tabLock.Font = Enum.Font.GothamBold
 tabLock.BorderSizePixel = 0
 tabLock.Parent = tabBar
 Instance.new("UICorner", tabLock).CornerRadius = UDim.new(0, 6)
 local tabNoStun = Instance.new("TextButton")
 tabNoStun.Size = UDim2.new(0, tabW, 1, 0)
-tabNoStun.Position = UDim2.new(0, tabW + 4, 0, 0)
+tabNoStun.Position = UDim2.new(0, (tabW + tabGap), 0, 0)
 tabNoStun.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-tabNoStun.Text = "NO STUN"
+tabNoStun.Text = "STUN"
 tabNoStun.TextColor3 = Color3.fromRGB(180, 180, 190)
 tabNoStun.TextSize = 9
 tabNoStun.Font = Enum.Font.GothamBold
@@ -289,15 +264,26 @@ tabNoStun.Parent = tabBar
 Instance.new("UICorner", tabNoStun).CornerRadius = UDim.new(0, 6)
 local tabDash = Instance.new("TextButton")
 tabDash.Size = UDim2.new(0, tabW, 1, 0)
-tabDash.Position = UDim2.new(0, (tabW + 4) * 2, 0, 0)
+tabDash.Position = UDim2.new(0, (tabW + tabGap) * 2, 0, 0)
 tabDash.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 tabDash.Text = "DASH"
 tabDash.TextColor3 = Color3.fromRGB(180, 180, 190)
-tabDash.TextSize = 11
+tabDash.TextSize = 9
 tabDash.Font = Enum.Font.GothamBold
 tabDash.BorderSizePixel = 0
 tabDash.Parent = tabBar
 Instance.new("UICorner", tabDash).CornerRadius = UDim.new(0, 6)
+local tabList = Instance.new("TextButton")
+tabList.Size = UDim2.new(0, tabW, 1, 0)
+tabList.Position = UDim2.new(0, (tabW + tabGap) * 3, 0, 0)
+tabList.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+tabList.Text = "LISTA"
+tabList.TextColor3 = Color3.fromRGB(180, 180, 190)
+tabList.TextSize = 9
+tabList.Font = Enum.Font.GothamBold
+tabList.BorderSizePixel = 0
+tabList.Parent = tabBar
+Instance.new("UICorner", tabList).CornerRadius = UDim.new(0, 6)
 local contentArea = Instance.new("Frame")
 contentArea.Size = UDim2.new(1, -16, 1, -70)
 contentArea.Position = UDim2.new(0, 8, 0, 66)
@@ -377,42 +363,6 @@ smoothValLabel.TextXAlignment = Enum.TextXAlignment.Left
 smoothValLabel.Parent = lockPage
 local dist3DBtn = halfBtn("Dist 3D: OFF", 142, false, Color3.fromRGB(160, 50, 50))
 local transBtn = halfBtn("Transp: 0%", 142, true, Color3.fromRGB(45, 45, 60))
--- SECCION APUNTADO / TECLA (NUEVA)
-local aimSep = Instance.new("TextLabel")
-aimSep.Size = UDim2.new(1, 0, 0, 14)
-aimSep.Position = UDim2.new(0, 0, 0, 172)
-aimSep.BackgroundTransparency = 1
-aimSep.Text = "--- APUNTADO / TECLA ---"
-aimSep.TextColor3 = Color3.fromRGB(160, 120, 255)
-aimSep.TextSize = 9
-aimSep.Font = Enum.Font.GothamBold
-aimSep.Parent = lockPage
-local partBtn = halfBtn("Parte: Torso", 190, false, Color3.fromRGB(70, 130, 220))
-local keyBtn = halfBtn("Tecla: L", 190, true, Color3.fromRGB(70, 130, 220))
-local function updatePartBtn()
-partBtn.Text = "Parte: " .. (lockPart == "head" and "Cabeza" or "Torso")
-partBtn.BackgroundColor3 = lockPart == "head" and Color3.fromRGB(160, 50, 50) or Color3.fromRGB(70, 130, 220)
-end
-local function updateKeyBtn()
-if listeningForKey then
-keyBtn.Text = "Presiona..."
-keyBtn.BackgroundColor3 = Color3.fromRGB(255, 220, 130)
-keyBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
-else
-keyBtn.Text = "Tecla: " .. lockKey.Name
-keyBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 220)
-keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-end
-end
-partBtn.MouseButton1Click:Connect(function()
-lockPart = (lockPart == "torso") and "head" or "torso"
-updatePartBtn()
-saveConfig()
-end)
-keyBtn.MouseButton1Click:Connect(function()
-listeningForKey = not listeningForKey
-updateKeyBtn()
-end)
 -- NO STUN PAGE
 local noStunPage = Instance.new("Frame")
 noStunPage.Size = UDim2.new(1, 0, 1, 0)
@@ -576,11 +526,175 @@ dashDesc.Font = Enum.Font.Gotham
 dashDesc.TextXAlignment = Enum.TextXAlignment.Left
 dashDesc.TextWrapped = true
 dashDesc.Parent = dashPage
--- TAB SYSTEM
+
+-- LIST PAGE
+local listPage = Instance.new("Frame")
+listPage.Size = UDim2.new(1, 0, 1, 0)
+listPage.BackgroundTransparency = 1
+listPage.Visible = false
+listPage.Parent = contentArea
+local function lpBtn(text, y, color)
+local b = Instance.new("TextButton")
+b.Size = UDim2.new(1, 0, 0, 26)
+b.Position = UDim2.new(0, 0, 0, y)
+b.BackgroundColor3 = color
+b.Text = text
+b.TextColor3 = Color3.fromRGB(255, 255, 255)
+b.TextSize = 10
+b.Font = Enum.Font.GothamBold
+b.BorderSizePixel = 0
+b.Parent = listPage
+Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+return b
+end
+local wlBtn = lpBtn("WHITELIST: 0", 0, Color3.fromRGB(45, 160, 70))
+local blBtn = lpBtn("BLACKLIST: 0", 30, Color3.fromRGB(190, 45, 45))
+local listHint = Instance.new("TextLabel")
+listHint.Size = UDim2.new(1, 0, 0, 44)
+listHint.Position = UDim2.new(0, 0, 0, 62)
+listHint.BackgroundTransparency = 1
+listHint.Text = "Whitelist = aliados (nunca lock)\nBlacklist = objetivos prioritarios"
+listHint.TextColor3 = Color3.fromRGB(120, 120, 140)
+listHint.TextSize = 8
+listHint.Font = Enum.Font.Gotham
+listHint.TextXAlignment = Enum.TextXAlignment.Left
+listHint.TextYAlignment = Enum.TextYAlignment.Top
+listHint.TextWrapped = true
+listHint.Parent = listPage
+-- SELECTOR DE JUGADORES (overlay)
+local pickerGui = Instance.new("Frame")
+pickerGui.Name = "ZeidopPicker"
+pickerGui.Size = UDim2.new(0, 190, 0, 250)
+pickerGui.Position = UDim2.new(0.5, -95, 0.5, -125)
+pickerGui.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+pickerGui.BorderSizePixel = 0
+pickerGui.Active = true
+pickerGui.Visible = false
+pickerGui.ZIndex = 50
+pickerGui.Parent = screenGui
+Instance.new("UICorner", pickerGui).CornerRadius = UDim.new(0, 10)
+local pickerStroke = Instance.new("UIStroke")
+pickerStroke.Color = Color3.fromRGB(160, 120, 255)
+pickerStroke.Thickness = 1.5
+pickerStroke.Parent = pickerGui
+local pickerTitle = Instance.new("TextLabel")
+pickerTitle.Size = UDim2.new(1, -34, 0, 22)
+pickerTitle.Position = UDim2.new(0, 8, 0, 4)
+pickerTitle.BackgroundTransparency = 1
+pickerTitle.Text = "WHITELIST"
+pickerTitle.TextColor3 = Color3.fromRGB(110, 255, 130)
+pickerTitle.TextSize = 11
+pickerTitle.Font = Enum.Font.GothamBold
+pickerTitle.TextXAlignment = Enum.TextXAlignment.Left
+pickerTitle.Parent = pickerGui
+local pickerClose = Instance.new("TextButton")
+pickerClose.Size = UDim2.new(0, 22, 0, 22)
+pickerClose.Position = UDim2.new(1, -26, 0, 4)
+pickerClose.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
+pickerClose.Text = "X"
+pickerClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+pickerClose.TextSize = 12
+pickerClose.Font = Enum.Font.GothamBold
+pickerClose.BorderSizePixel = 0
+pickerClose.Parent = pickerGui
+Instance.new("UICorner", pickerClose).CornerRadius = UDim.new(0, 5)
+local pickerScroll = Instance.new("ScrollingFrame")
+pickerScroll.Size = UDim2.new(1, -12, 1, -34)
+pickerScroll.Position = UDim2.new(0, 6, 0, 30)
+pickerScroll.BackgroundTransparency = 1
+pickerScroll.BorderSizePixel = 0
+pickerScroll.ScrollBarThickness = 3
+pickerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+pickerScroll.Parent = pickerGui
+local pickerLayout = Instance.new("UIListLayout")
+pickerLayout.Padding = UDim.new(0, 3)
+pickerLayout.Parent = pickerScroll
+-- HELPERS DE LISTAS
+local pickerMode = "white"
+local function inList(list, name)
+for _, n in ipairs(list) do
+if n == name then return true end
+end
+return false
+end
+local function toggleInList(list, name)
+if inList(list, name) then
+for i = #list, 1, -1 do
+if list[i] == name then table.remove(list, i) end
+end
+else
+table.insert(list, name)
+end
+end
+local function updateListCounts()
+wlBtn.Text = "WHITELIST: " .. #whitelist
+blBtn.Text = "BLACKLIST: " .. #blacklist
+end
+local rebuildPicker
+rebuildPicker = function()
+for _, ch in ipairs(pickerScroll:GetChildren()) do
+if ch:IsA("Frame") then ch:Destroy() end
+end
+if pickerMode == "white" then
+pickerTitle.Text = "WHITELIST (aliados)"
+pickerTitle.TextColor3 = Color3.fromRGB(110, 255, 130)
+else
+pickerTitle.Text = "BLACKLIST (objetivos)"
+pickerTitle.TextColor3 = Color3.fromRGB(255, 120, 120)
+end
+for _, pl in ipairs(Players:GetPlayers()) do
+if pl ~= localPlayer then
+local list = (pickerMode == "white") and whitelist or blacklist
+local member = inList(list, pl.Name)
+local row = Instance.new("Frame")
+row.Size = UDim2.new(1, -4, 0, 22)
+row.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+row.BorderSizePixel = 0
+row.Parent = pickerScroll
+Instance.new("UICorner", row).CornerRadius = UDim.new(0, 5)
+local nm = Instance.new("TextLabel")
+nm.Size = UDim2.new(1, -70, 1, 0)
+nm.Position = UDim2.new(0, 6, 0, 0)
+nm.BackgroundTransparency = 1
+nm.Text = pl.Name
+nm.TextColor3 = Color3.fromRGB(220, 220, 230)
+nm.TextSize = 9
+nm.Font = Enum.Font.Gotham
+nm.TextXAlignment = Enum.TextXAlignment.Left
+nm.TextTruncate = Enum.TextTruncate.AtEnd
+nm.Parent = row
+local act = Instance.new("TextButton")
+act.Size = UDim2.new(0, 62, 0, 16)
+act.Position = UDim2.new(1, -66, 0, 3)
+act.BackgroundColor3 = member and Color3.fromRGB(160, 50, 50) or Color3.fromRGB(45, 160, 70)
+act.Text = member and "QUITAR" or "AGREGAR"
+act.TextColor3 = Color3.fromRGB(255, 255, 255)
+act.TextSize = 8
+act.Font = Enum.Font.GothamBold
+act.BorderSizePixel = 0
+act.Parent = row
+act.MouseButton1Click:Connect(function()
+toggleInList(list, pl.Name)
+updateListCounts()
+rebuildPicker()
+end)
+end
+end
+end
+local function openPicker(mode)
+pickerMode = mode
+pickerGui.Visible = true
+rebuildPicker()
+end
+wlBtn.MouseButton1Click:Connect(function() openPicker("white") end)
+blBtn.MouseButton1Click:Connect(function() openPicker("black") end)
+pickerClose.MouseButton1Click:Connect(function() pickerGui.Visible = false end)
+-- TAB SYSTEM (4)
 local tabs = {
 {btn = tabLock, page = lockPage},
 {btn = tabNoStun, page = noStunPage},
-{btn = tabDash, page = dashPage}
+{btn = tabDash, page = dashPage},
+{btn = tabList, page = listPage}
 }
 local function setActiveTab(index)
 for i, data in ipairs(tabs) do
@@ -598,7 +712,7 @@ end
 tabLock.MouseButton1Click:Connect(function() setActiveTab(1) end)
 tabNoStun.MouseButton1Click:Connect(function() setActiveTab(2) end)
 tabDash.MouseButton1Click:Connect(function() setActiveTab(3) end)
-
+tabList.MouseButton1Click:Connect(function() setActiveTab(4) end)
 -- BOTONES FLOTANTES
 local lockButton = Instance.new("TextButton")
 lockButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
@@ -708,6 +822,8 @@ makeDraggable(miniMenuBtn, function() return true end)
 makeDraggable(lockButton, function() return isDraggable end)
 makeDraggable(jumpBtn, function() return not stunLocked end)
 makeDraggable(dashFloatBtn, function() return not stunLocked end)
+makeDraggable(pickerGui, function() return true end)
+
 -- FUNCIONES ANTI-STUN
 local function jump()
 if not humanoid or not rootPart or not jumping then return end
@@ -731,21 +847,52 @@ local lookVector = rootPart.CFrame.LookVector
 rootPart.Velocity = Vector3.new(lookVector.X * dashForce, rootPart.Velocity.Y, lookVector.Z * dashForce)
 end)
 end
--- LOGICA LOCK
+-- LOGICA LOCK (CON LISTAS)
 local function getClosestPlayer()
 Camera = workspace.CurrentCamera
 if not Camera then return nil end
-local closestPlayer = nil
-local shortestDistance = math.huge
-local myChar = localPlayer.Character
-local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
 local vp = Camera.ViewportSize
 local screenCenter = Vector2.new(vp.X / 2, vp.Y / 2)
+local myChar = localPlayer.Character
+local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+local function valid(pl)
+if pl == localPlayer or not pl.Character then return nil end
+if inList(whitelist, pl.Name) then return nil end
+local root = pl.Character:FindFirstChild("HumanoidRootPart")
+local hum = pl.Character:FindFirstChildOfClass("Humanoid")
+if root and hum and hum.Health > 0 then return root end
+return nil
+end
+-- Si hay BLACKLIST, solo ellos (aunque esten fuera de pantalla)
+if #blacklist > 0 then
+local best, bestDist = nil, math.huge
+for _, name in ipairs(blacklist) do
+local pl = Players:FindFirstChild(name)
+if pl then
+local root = valid(pl)
+if root then
+local sp = Camera:WorldToViewportPoint(root.Position)
+local d
+if sp.Z > 0 then
+d = (Vector2.new(sp.X, sp.Y) - screenCenter).Magnitude
+else
+d = 100000 + (myRoot and (root.Position - myRoot.Position).Magnitude or 9999)
+end
+if d < bestDist then
+bestDist = d
+best = pl
+end
+end
+end
+end
+return best
+end
+-- Modo normal: el mas cercano al centro, sin whitelisted
+local closestPlayer = nil
+local shortestDistance = math.huge
 for _, player in pairs(Players:GetPlayers()) do
-if player ~= localPlayer and player.Character then
-local root = player.Character:FindFirstChild("HumanoidRootPart")
-local hum = player.Character:FindFirstChildOfClass("Humanoid")
-if root and hum and hum.Health > 0 then
+local root = valid(player)
+if root then
 local distance
 if useDistance3D and myRoot then
 distance = (root.Position - myRoot.Position).Magnitude
@@ -760,7 +907,6 @@ end
 if distance < shortestDistance then
 shortestDistance = distance
 closestPlayer = player
-end
 end
 end
 end
@@ -794,7 +940,6 @@ resetLock()
 end
 end
 lockButton.MouseButton1Click:Connect(toggleLock)
-
 -- EVENTOS LOCK
 showBtn.MouseButton1Click:Connect(function()
 buttonVisible = not buttonVisible
@@ -883,16 +1028,6 @@ miniMenuBtn.MouseButton1Click:Connect(function()
 miniMenuBtn.Visible = false
 menuFrame.Visible = true
 menuFrame.Position = miniMenuBtn.Position
-end)
--- BOTON CERRAR
-closeBtn.MouseButton1Click:Connect(function()
-scriptClosed = true
-antiStunEnabled = false
-targetLock = false
-lockedPlayer = nil
-pcall(function() RunService:UnbindFromRenderStep(CAMERA_LOCK_NAME) end)
-pcall(function() loadGui:Destroy() end)
-pcall(function() screenGui:Destroy() end)
 end)
 -- EVENTOS ANTI-STUN
 local function updateNsToggle()
@@ -990,22 +1125,21 @@ dashEnabled = not dashEnabled
 dashToggleBtn.BackgroundColor3 = dashEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
 dashToggleBtn.Text = dashEnabled and "ACTIVADO" or "DESACTIVADO"
 end)
--- HOTKEYS (con tecla lock + captura de tecla)
+-- LIMPIEZA DE LISTAS AL SALIR JUGADORES
+Players.PlayerRemoving:Connect(function(pl)
+for i = #whitelist, 1, -1 do
+if whitelist[i] == pl.Name then table.remove(whitelist, i) end
+end
+for i = #blacklist, 1, -1 do
+if blacklist[i] == pl.Name then table.remove(blacklist, i) end
+end
+updateListCounts()
+if pickerGui.Visible then rebuildPicker() end
+end)
+-- HOTKEYS
 UserInputService.InputBegan:Connect(function(input, processed)
-if scriptClosed then return end
-if listeningForKey then
-if input.KeyCode ~= Enum.KeyCode.Unknown then
-lockKey = input.KeyCode
-listeningForKey = false
-updateKeyBtn()
-saveConfig()
-end
-return
-end
 if processed then return end
-if input.KeyCode == lockKey then
-toggleLock()
-elseif input.KeyCode == Enum.KeyCode.X then
+if input.KeyCode == Enum.KeyCode.X then
 antiStunEnabled = not antiStunEnabled
 jumping = true
 updateNsToggle()
@@ -1018,9 +1152,9 @@ elseif input.KeyCode == Enum.KeyCode.Q then
 dash()
 end
 end)
--- HEARTBEAT ANTI-STUN (CORREGIDO, sin Stunned)
+-- HEARTBEAT ANTI-STUN (CORREGIDO)
 RunService.Heartbeat:Connect(function()
-if scriptClosed or not antiStunEnabled or not humanoid or not humanoid.Parent or not jumping then return end
+if not antiStunEnabled or not humanoid or not humanoid.Parent or not jumping then return end
 local state = humanoid:GetState()
 if state == Enum.HumanoidStateType.FallingDown
 or state == Enum.HumanoidStateType.GettingUp
@@ -1030,11 +1164,27 @@ or state == Enum.HumanoidStateType.Physics then
 jump()
 end
 end)
--- LOOP CAMERA LOCK (con parte elegible)
+
+-- LOOP CAMERA LOCK (CON REGLAS DE LISTAS)
 local lastDeltaTime = 1/60
 local function cameraLockStep(dt)
 lastDeltaTime = dt or (1/60)
-if scriptClosed or not targetLock or not lockedPlayer or not lockedPlayer.Character then return end
+if not targetLock or not lockedPlayer or not lockedPlayer.Character then return end
+-- Regla: nunca mantener lock en whitelist
+if inList(whitelist, lockedPlayer.Name) then
+resetLock()
+return
+end
+-- Regla: si hay blacklist, el lock siempre va a ellos
+if #blacklist > 0 and not inList(blacklist, lockedPlayer.Name) then
+local b = getClosestPlayer()
+if b then
+lockedPlayer = b
+else
+resetLock()
+return
+end
+end
 Camera = workspace.CurrentCamera
 if not Camera then return end
 local root = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1043,12 +1193,7 @@ if not root or not hum or hum.Health <= 0 then
 resetLock()
 return
 end
-local aimPart = root
-if lockPart == "head" then
-local head = lockedPlayer.Character:FindFirstChild("Head")
-if head then aimPart = head end
-end
-local targetPos = aimPart.Position
+local targetPos = root.Position
 local aimPosition = targetPos
 if predictEnabled then
 local currentVelocity = Vector3.new(0, 0, 0)
@@ -1101,7 +1246,9 @@ end
 RunService:BindToRenderStep(CAMERA_LOCK_NAME, Enum.RenderPriority.Camera.Value + 1, cameraLockStep)
 -- SEGURIDAD
 localPlayer.CharacterAdded:Connect(function(c)
-setChar(c)
+character = c
+humanoid = c:WaitForChild("Humanoid")
+rootPart = c:WaitForChild("HumanoidRootPart", 3) or c:FindFirstChild("Torso")
 jumping = true
 wait(0.5)
 if targetLock then resetLock() end
@@ -1110,6 +1257,13 @@ end)
 if localPlayer.Character then
 hookDash()
 end
+-- MOSTRAR MENU
+delay(2, function()
+if loadGui and loadGui.Parent then
+loadGui:Destroy()
+end
+menuFrame.Visible = true
+end)
 -- APLICAR VALORES GUARDADOS
 local function refreshAllVisuals()
 lockButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
@@ -1132,11 +1286,8 @@ smoothBtn.BackgroundColor3 = smoothMode and Color3.fromRGB(45, 160, 70) or Color
 smoothValLabel.Text = string.format("%.2f", smoothAmount)
 dist3DBtn.Text = "Dist 3D: " .. (useDistance3D and "ON" or "OFF")
 dist3DBtn.BackgroundColor3 = useDistance3D and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
-updatePartBtn()
-updateKeyBtn()
-menuFrame.BackgroundTransparency = menuTransparency
-transBtn.Text = "Transp: " .. tostring(math.floor(menuTransparency * 100 + 0.5)) .. "%"
 updateNsToggle()
+updateListCounts()
 nsJumpLabel.Text = "Jump Power: " .. jumpPower
 nsDashLabel.Text = "Dash Force: " .. dashForce
 nsJumpSizeLabel.Text = "Jump Size: " .. jumpBtnSize
@@ -1155,35 +1306,25 @@ wait(5)
 saveConfig()
 end
 end)
--- MOSTRAR MENU
-delay(2, function()
-if loadGui and loadGui.Parent then
-loadGui:Destroy()
-end
-menuFrame.Visible = true
+print("Zeidop Hub cargado OK - LOCK + STUN + DASH + LISTA")
+-- FIX SCROLL DEL SELECTOR
+local pg2 = Players.LocalPlayer:WaitForChild("PlayerGui")
+local hub2 = pg2:FindFirstChild("ZeidopHub")
+local picker2 = hub2 and hub2:FindFirstChild("ZeidopPicker")
+if picker2 then
+local scroll2 = picker2:FindFirstChildOfClass("ScrollingFrame")
+if scroll2 then
+pcall(function()
+scroll2.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
 end)
-print("Zeidop Hub FINAL cargado OK")
--- FIX SCROLL DEL SELECTOR (independiente)
-local Players = game:GetService("Players")
-local pg = Players.LocalPlayer:WaitForChild("PlayerGui")
-local hub = pg:FindFirstChild("ZeidopHub")
-local picker = hub and hub:FindFirstChild("ZeidopPicker")
-if not picker then warn("No se encontro el selector") return end
-local scroll = picker:FindFirstChildOfClass("ScrollingFrame")
-if not scroll then warn("No se encontro el scroll") return end
-local layout = scroll:FindFirstChildOfClass("UIListLayout")
-
--- Opcion 1: canvas automatico (se ajusta solo al contenido)
-local okAuto = pcall(function()
-scroll.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
-end)
-
--- Opcion 2 (respaldo): ajustar el canvas manualmente al tamano de la lista
-if layout then
+local layout2 = scroll2:FindFirstChildOfClass("UIListLayout")
+if layout2 then
 local function fit()
-scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+scroll2.CanvasSize = UDim2.new(0, 0, 0, layout2.AbsoluteContentSize.Y + 8)
 end
 fit()
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
+layout2:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
 end
-print("Scroll del selector arreglado (auto=" .. tostring(okAuto) .. ")")
+end
+end
+print("Scroll del selector arreglado")
