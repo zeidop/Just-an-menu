@@ -1163,3 +1163,27 @@ end
 menuFrame.Visible = true
 end)
 print("Zeidop Hub FINAL cargado OK")
+-- FIX SCROLL DEL SELECTOR (independiente)
+local Players = game:GetService("Players")
+local pg = Players.LocalPlayer:WaitForChild("PlayerGui")
+local hub = pg:FindFirstChild("ZeidopHub")
+local picker = hub and hub:FindFirstChild("ZeidopPicker")
+if not picker then warn("No se encontro el selector") return end
+local scroll = picker:FindFirstChildOfClass("ScrollingFrame")
+if not scroll then warn("No se encontro el scroll") return end
+local layout = scroll:FindFirstChildOfClass("UIListLayout")
+
+-- Opcion 1: canvas automatico (se ajusta solo al contenido)
+local okAuto = pcall(function()
+scroll.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
+end)
+
+-- Opcion 2 (respaldo): ajustar el canvas manualmente al tamano de la lista
+if layout then
+local function fit()
+scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+end
+fit()
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
+end
+print("Scroll del selector arreglado (auto=" .. tostring(okAuto) .. ")")
