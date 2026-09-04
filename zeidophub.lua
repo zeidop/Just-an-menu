@@ -1236,7 +1236,7 @@ local hum = lockedPlayer.Character:FindFirstChildOfClass("Humanoid")
 if not root or not hum or hum.Health <= 0 then
 resetLock()
 return
-end
+  end)
 -- ELEGIR PARTE DEL CUERPO A APUNTAR
 local aimPart = root
 if lockPart == "head" then
@@ -1245,7 +1245,42 @@ if head then aimPart = head end
 end
 local targetPos = aimPart.Position
 local aimPosition = targetPos
-
+if predictEnabled then
+local rawVel = root.AssemblyLinearVelocity or root.Velocity or Vector3.new(0,0,0)
+local currentVelocity
+if rawVel.Magnitude > 0.5 then
+currentVelocity = rawVel
+elseif lastTargetPos then
+currentVelocity = (targetPos - lastTargetPos) / math.max(0.008, lastDeltaTime)
+else
+currentVelocity = Vector3.new(0,0,0)
+end
+currentVelocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
+if currentVelocity.Magnitude > 80 then currentVelocity = currentVelocity.Unit * 80 end
+smoothedVelocity = smoothedVelocity * 0.55 + currentVelocity * 0.45
+local predictedOffset = smoothedVelocity * predictAmount
+if predictAcceleration then
+local currentAcceleration = Vector3.new(0,0,0)
+if lastVelocity.Magnitude > 0.1 then
+currentAcceleration = (currentVelocity - lastVelocity) / math.max(0.008, lastDeltaTime)
+end
+currentAcceleration = Vector3.new(currentAcceleration.X, 0, currentAcceleration.Z)
+smoothedAcceleration = smoothedAcceleration * 0.65 + currentAcceleration * 0.35
+lastVelocity = currentVelocity
+predictedOffset = predictedOffset + smoothedAcceleration * 0.5 * predictAmount * predictAmount
+end
+if smoothedVelocity.Magnitude < 1 then predictedOffset = Vector3.new(0,0,0) end
+if predictedOffset.Magnitude > 12 then predictedOffset = predictedOffset.Unit * 12 end
+aimPosition = targetPos + predictedOffset
+end
+lastTargetPos = targetPos
+local targetCFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
+if smoothMode then
+Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothAmount)
+else
+Camera.CFrame = targetCFrame
+end
+end
 RunService:BindToRenderStep(CAMERA_LOCK_NAME, Enum.RenderPriority.Camera.Value + 1, cameraLockStep)
 -- SEGURIDAD
 localPlayer.CharacterAdded:Connect(function(c)
