@@ -17,7 +17,6 @@ local lastTargetPos = nil
 local smoothedVelocity = Vector3.new(0, 0, 0)
 local lastVelocity = Vector3.new(0, 0, 0)
 local smoothedAcceleration = Vector3.new(0, 0, 0)
-local predictVertical = false
 local predictAcceleration = false
 local useDistance3D = false
 local smoothMode = false
@@ -56,7 +55,7 @@ if writefile then
 writefile(SAVE_FILE, HttpService:JSONEncode({
 buttonSize = buttonSize, buttonVisible = buttonVisible, isDraggable = isDraggable,
 predictEnabled = predictEnabled, predictAmount = predictAmount,
-predictVertical = predictVertical, predictAcceleration = predictAcceleration,
+predictAcceleration = predictAcceleration,
 useDistance3D = useDistance3D, smoothMode = smoothMode, smoothAmount = smoothAmount,
 menuTransparency = menuTransparency, jumpPower = jumpPower, dashForce = dashForce,
 jumpBtnSize = jumpBtnSize, dashBtnSize = dashBtnSize,
@@ -76,7 +75,6 @@ if type(d.buttonVisible) == "boolean" then buttonVisible = d.buttonVisible end
 if type(d.isDraggable) == "boolean" then isDraggable = d.isDraggable end
 if type(d.predictEnabled) == "boolean" then predictEnabled = d.predictEnabled end
 if type(d.predictAmount) == "number" then predictAmount = d.predictAmount end
-if type(d.predictVertical) == "boolean" then predictVertical = d.predictVertical end
 if type(d.predictAcceleration) == "boolean" then predictAcceleration = d.predictAcceleration end
 if type(d.useDistance3D) == "boolean" then useDistance3D = d.useDistance3D end
 if type(d.smoothMode) == "boolean" then smoothMode = d.smoothMode end
@@ -350,8 +348,17 @@ local predictLabel = smallLabel("Predict: 0.18s", 58, Color3.fromRGB(255, 220, 1
 local predictMinus = smallBtn("-", 80, 56, 28)
 local predictPlus = smallBtn("+", 112, 56, 28)
 local predictToggle = smallBtn("ON", 144, 56, 28, Color3.fromRGB(45, 160, 70))
-local predictVertBtn = halfBtn("Pred Vertical: OFF", 86, false, Color3.fromRGB(160, 50, 50))
-local predictAccBtn = halfBtn("Pred Accel: OFF", 86, true, Color3.fromRGB(160, 50, 50))
+local predictAccBtn = Instance.new("TextButton")
+predictAccBtn.Size = UDim2.new(1, 0, 0, 24)
+predictAccBtn.Position = UDim2.new(0, 0, 0, 86)
+predictAccBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
+predictAccBtn.Text = "Pred Accel: OFF"
+predictAccBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+predictAccBtn.TextSize = 10
+predictAccBtn.Font = Enum.Font.GothamBold
+predictAccBtn.BorderSizePixel = 0
+predictAccBtn.Parent = lockPage
+Instance.new("UICorner", predictAccBtn).CornerRadius = UDim.new(0, 6)
 local smoothBtn = halfBtn("Smooth: OFF", 114, false, Color3.fromRGB(160, 50, 50))
 local smoothMinus = smallBtn("-", 99, 112, 28)
 local smoothPlus = smallBtn("+", 131, 112, 28)
@@ -367,7 +374,7 @@ smoothValLabel.TextXAlignment = Enum.TextXAlignment.Left
 smoothValLabel.Parent = lockPage
 local dist3DBtn = halfBtn("Dist 3D: OFF", 142, false, Color3.fromRGB(160, 50, 50))
 local transBtn = halfBtn("Transp: 0%", 142, true, Color3.fromRGB(45, 45, 60))
--- SECCION APUNTADO / TECLA (NUEVA)
+-- SECCION APUNTADO / TECLA
 local aimSep = Instance.new("TextLabel")
 aimSep.Size = UDim2.new(1, 0, 0, 14)
 aimSep.Position = UDim2.new(0, 0, 0, 172)
@@ -1014,11 +1021,6 @@ predictToggle.Text = predictEnabled and "ON" or "OFF"
 predictToggle.BackgroundColor3 = predictEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
 predictLabel.TextColor3 = predictEnabled and Color3.fromRGB(255, 220, 130) or Color3.fromRGB(150, 150, 150)
 end)
-predictVertBtn.MouseButton1Click:Connect(function()
-predictVertical = not predictVertical
-predictVertBtn.Text = "Pred Vertical: " .. (predictVertical and "ON" or "OFF")
-predictVertBtn.BackgroundColor3 = predictVertical and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
-end)
 predictAccBtn.MouseButton1Click:Connect(function()
 predictAcceleration = not predictAcceleration
 predictAccBtn.Text = "Pred Accel: " .. (predictAcceleration and "ON" or "OFF")
@@ -1172,7 +1174,7 @@ end
 updateListCounts()
 if pickerGui.Visible then rebuildPicker() end
 end)
--- HOTKEYS (CON TECLA LOCK + CAPTURA DE TECLA)
+-- HOTKEYS (CON TECLA LOCK)
 UserInputService.InputBegan:Connect(function(input, processed)
 if listeningForKey then
 if input.KeyCode ~= Enum.KeyCode.Unknown then
@@ -1199,7 +1201,7 @@ elseif input.KeyCode == Enum.KeyCode.Q then
 dash()
 end
 end)
--- HEARTBEAT ANTI-STUN (CORREGIDO)
+-- HEARTBEAT ANTI-STUN
 RunService.Heartbeat:Connect(function()
 if not antiStunEnabled or not humanoid or not humanoid.Parent or not jumping then return end
 local state = humanoid:GetState()
@@ -1211,7 +1213,7 @@ or state == Enum.HumanoidStateType.Physics then
 jump()
 end
 end)
--- LOOP CAMERA LOCK (CON PARTE ELEGIBLE Y REGLAS DE LISTAS)
+-- LOOP CAMERA LOCK (PREDICT MEJORADO, CORREGIDO)
 local lastDeltaTime = 1/60
 local function cameraLockStep(dt)
 lastDeltaTime = dt or (1/60)
@@ -1236,8 +1238,7 @@ local hum = lockedPlayer.Character:FindFirstChildOfClass("Humanoid")
 if not root or not hum or hum.Health <= 0 then
 resetLock()
 return
-  end)
--- ELEGIR PARTE DEL CUERPO A APUNTAR
+end
 local aimPart = root
 if lockPart == "head" then
 local head = lockedPlayer.Character:FindFirstChild("Head")
@@ -1315,8 +1316,6 @@ predictLabel.Text = string.format("Predict: %.2fs", predictAmount)
 predictToggle.Text = predictEnabled and "ON" or "OFF"
 predictToggle.BackgroundColor3 = predictEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
 predictLabel.TextColor3 = predictEnabled and Color3.fromRGB(255, 220, 130) or Color3.fromRGB(150, 150, 150)
-predictVertBtn.Text = "Pred Vertical: " .. (predictVertical and "ON" or "OFF")
-predictVertBtn.BackgroundColor3 = predictVertical and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
 predictAccBtn.Text = "Pred Accel: " .. (predictAcceleration and "ON" or "OFF")
 predictAccBtn.BackgroundColor3 = predictAcceleration and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
 smoothBtn.Text = "Smooth: " .. (smoothMode and "ON" or "OFF")
@@ -1367,7 +1366,7 @@ layout2:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
 end
 end
 end
--- ==================== IMAN / REACH (agregado a LISTA) ====================
+-- ==================== IMAN / LUNGE (en LISTA, CORREGIDO) ====================
 local reachOn = true
 local imanOn = false
 local lungeOn = true
@@ -1376,7 +1375,6 @@ local lungeReach = 6
 local maxRange = 14
 local stopRange = 5
 local lastLunge = 0
-
 local function rBtn(text, y, color)
 local b = Instance.new("TextButton")
 b.Size = UDim2.new(1, 0, 0, 22)
@@ -1391,11 +1389,9 @@ b.Parent = listPage
 Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
 return b
 end
-
 local imanBtn = rBtn("IMAN: OFF", 106, Color3.fromRGB(160, 50, 50))
 local lungeBtn = rBtn("LUNGE: ON", 130, Color3.fromRGB(45, 160, 70))
 local fuerzaBtn = rBtn("Fuerza: 4", 154, Color3.fromRGB(70, 130, 220))
-
 local function myRoot()
 local c = localPlayer.Character
 return c and c:FindFirstChild("HumanoidRootPart")
@@ -1404,7 +1400,6 @@ local function myHum()
 local c = localPlayer.Character
 return c and c:FindFirstChildOfClass("Humanoid")
 end
-
 local function nearestEnemy()
 local r0 = myRoot()
 if not r0 then return nil, math.huge end
@@ -1416,15 +1411,16 @@ local h = pl.Character:FindFirstChildOfClass("Humanoid")
 if r and h and h.Health > 0 then
 if not inList(whitelist, pl.Name) then
 local d = (r.Position - r0.Position).Magnitude
-if d < bd then bd = d best = r end
+if d < bd then
+bd = d
+best = r
+end
 end
 end
 end
 end
 return best, bd
 end
-
--- IMAN: te acerca gradualmente (no teletransporta)
 RunService.Heartbeat:Connect(function()
 if not reachOn or not imanOn then return end
 local hum = myHum(); local r0 = myRoot()
@@ -1439,8 +1435,6 @@ local step = math.min(d - stopRange, fuerza * 0.05)
 pcall(function() r0.CFrame = r0.CFrame + dir * step end)
 end
 end)
-
--- LUNGE: paso corto al golpear (no pega por ti)
 local function doLunge()
 if not reachOn or not lungeOn then return end
 if tick() - lastLunge < 0.25 then return end
@@ -1460,8 +1454,6 @@ lastLunge = tick()
 pcall(function() r0.CFrame = r0.CFrame + dir * step end)
 end
 end
-
--- Detectores de TU golpe (animacion + boton de ataque)
 local function hookAnims(hum)
 local anim = hum and hum:FindFirstChildOfClass("Animator")
 if not anim then return end
@@ -1474,7 +1466,6 @@ end)
 end
 if localPlayer.Character then hookAnims(localPlayer.Character:FindFirstChildOfClass("Humanoid")) end
 localPlayer.CharacterAdded:Connect(function(c) hookAnims(c:FindFirstChildOfClass("Humanoid")) end)
-
 local atkConn = false
 local function tryAtkBtn()
 if atkConn then return end
@@ -1494,8 +1485,6 @@ end
 end
 end
 task.spawn(function() while not atkConn do task.wait(3) tryAtkBtn() end end)
-
--- Eventos de los botones de LISTA
 imanBtn.MouseButton1Click:Connect(function()
 imanOn = not imanOn
 imanBtn.Text = "IMAN: " .. (imanOn and "ON" or "OFF")
