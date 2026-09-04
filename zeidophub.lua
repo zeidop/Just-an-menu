@@ -23,6 +23,9 @@ local useDistance3D = false
 local smoothMode = false
 local smoothAmount = 0.35
 local menuTransparency = 0
+local lockPart = "torso"
+local lockKey = Enum.KeyCode.L
+local listeningForKey = false
 local CAMERA_LOCK_NAME = "ZeidopCameraLock"
 -- CONFIG LISTAS
 local whitelist = {}
@@ -57,7 +60,8 @@ predictVertical = predictVertical, predictAcceleration = predictAcceleration,
 useDistance3D = useDistance3D, smoothMode = smoothMode, smoothAmount = smoothAmount,
 menuTransparency = menuTransparency, jumpPower = jumpPower, dashForce = dashForce,
 jumpBtnSize = jumpBtnSize, dashBtnSize = dashBtnSize,
-dashMultiplier = dashMultiplier, dashEnabled = dashEnabled
+dashMultiplier = dashMultiplier, dashEnabled = dashEnabled,
+lockPart = lockPart, lockKeyName = lockKey.Name
 }))
 end
 end)
@@ -84,6 +88,8 @@ if type(d.jumpBtnSize) == "number" then jumpBtnSize = d.jumpBtnSize end
 if type(d.dashBtnSize) == "number" then dashBtnSize = d.dashBtnSize end
 if type(d.dashMultiplier) == "number" then dashMultiplier = d.dashMultiplier end
 if type(d.dashEnabled) == "boolean" then dashEnabled = d.dashEnabled end
+if type(d.lockPart) == "string" then lockPart = d.lockPart end
+if type(d.lockKeyName) == "string" then pcall(function() lockKey = Enum.KeyCode[d.lockKeyName] end) end
 end
 end
 end)
@@ -173,7 +179,7 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 210, 0, 250)
+menuFrame.Size = UDim2.new(0, 210, 0, 290)
 menuFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 menuFrame.BackgroundTransparency = menuTransparency
@@ -232,7 +238,6 @@ accentLine.Position = UDim2.new(0, 0, 0, 30)
 accentLine.BackgroundColor3 = Color3.fromRGB(160, 120, 255)
 accentLine.BorderSizePixel = 0
 accentLine.Parent = menuFrame
--- TAB BAR (4 TABS)
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 26)
 tabBar.Position = UDim2.new(0, 8, 0, 36)
@@ -289,7 +294,6 @@ contentArea.Size = UDim2.new(1, -16, 1, -70)
 contentArea.Position = UDim2.new(0, 8, 0, 66)
 contentArea.BackgroundTransparency = 1
 contentArea.Parent = menuFrame
-
 -- LOCK PAGE
 local lockPage = Instance.new("Frame")
 lockPage.Size = UDim2.new(1, 0, 1, 0)
@@ -363,6 +367,42 @@ smoothValLabel.TextXAlignment = Enum.TextXAlignment.Left
 smoothValLabel.Parent = lockPage
 local dist3DBtn = halfBtn("Dist 3D: OFF", 142, false, Color3.fromRGB(160, 50, 50))
 local transBtn = halfBtn("Transp: 0%", 142, true, Color3.fromRGB(45, 45, 60))
+-- SECCION APUNTADO / TECLA (NUEVA)
+local aimSep = Instance.new("TextLabel")
+aimSep.Size = UDim2.new(1, 0, 0, 14)
+aimSep.Position = UDim2.new(0, 0, 0, 172)
+aimSep.BackgroundTransparency = 1
+aimSep.Text = "--- APUNTADO / TECLA ---"
+aimSep.TextColor3 = Color3.fromRGB(160, 120, 255)
+aimSep.TextSize = 9
+aimSep.Font = Enum.Font.GothamBold
+aimSep.Parent = lockPage
+local partBtn = halfBtn("Parte: Torso", 190, false, Color3.fromRGB(70, 130, 220))
+local keyBtn = halfBtn("Tecla: L", 190, true, Color3.fromRGB(70, 130, 220))
+local function updatePartBtn()
+partBtn.Text = "Parte: " .. (lockPart == "head" and "Cabeza" or "Torso")
+partBtn.BackgroundColor3 = lockPart == "head" and Color3.fromRGB(160, 50, 50) or Color3.fromRGB(70, 130, 220)
+end
+local function updateKeyBtn()
+if listeningForKey then
+keyBtn.Text = "Presiona..."
+keyBtn.BackgroundColor3 = Color3.fromRGB(255, 220, 130)
+keyBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
+else
+keyBtn.Text = "Tecla: " .. lockKey.Name
+keyBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 220)
+keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+end
+partBtn.MouseButton1Click:Connect(function()
+lockPart = (lockPart == "torso") and "head" or "torso"
+updatePartBtn()
+saveConfig()
+end)
+keyBtn.MouseButton1Click:Connect(function()
+listeningForKey = not listeningForKey
+updateKeyBtn()
+end)
 -- NO STUN PAGE
 local noStunPage = Instance.new("Frame")
 noStunPage.Size = UDim2.new(1, 0, 1, 0)
@@ -526,7 +566,6 @@ dashDesc.Font = Enum.Font.Gotham
 dashDesc.TextXAlignment = Enum.TextXAlignment.Left
 dashDesc.TextWrapped = true
 dashDesc.Parent = dashPage
-
 -- LIST PAGE
 local listPage = Instance.new("Frame")
 listPage.Size = UDim2.new(1, 0, 1, 0)
@@ -561,7 +600,7 @@ listHint.TextXAlignment = Enum.TextXAlignment.Left
 listHint.TextYAlignment = Enum.TextYAlignment.Top
 listHint.TextWrapped = true
 listHint.Parent = listPage
--- SELECTOR DE JUGADORES (overlay)
+-- SELECTOR DE JUGADORES
 local pickerGui = Instance.new("Frame")
 pickerGui.Name = "ZeidopPicker"
 pickerGui.Size = UDim2.new(0, 190, 0, 250)
@@ -689,7 +728,7 @@ end
 wlBtn.MouseButton1Click:Connect(function() openPicker("white") end)
 blBtn.MouseButton1Click:Connect(function() openPicker("black") end)
 pickerClose.MouseButton1Click:Connect(function() pickerGui.Visible = false end)
--- TAB SYSTEM (4)
+-- TAB SYSTEM
 local tabs = {
 {btn = tabLock, page = lockPage},
 {btn = tabNoStun, page = noStunPage},
@@ -823,7 +862,6 @@ makeDraggable(lockButton, function() return isDraggable end)
 makeDraggable(jumpBtn, function() return not stunLocked end)
 makeDraggable(dashFloatBtn, function() return not stunLocked end)
 makeDraggable(pickerGui, function() return true end)
-
 -- FUNCIONES ANTI-STUN
 local function jump()
 if not humanoid or not rootPart or not jumping then return end
@@ -863,7 +901,6 @@ local hum = pl.Character:FindFirstChildOfClass("Humanoid")
 if root and hum and hum.Health > 0 then return root end
 return nil
 end
--- Si hay BLACKLIST, solo ellos (aunque esten fuera de pantalla)
 if #blacklist > 0 then
 local best, bestDist = nil, math.huge
 for _, name in ipairs(blacklist) do
@@ -887,7 +924,6 @@ end
 end
 return best
 end
--- Modo normal: el mas cercano al centro, sin whitelisted
 local closestPlayer = nil
 local shortestDistance = math.huge
 for _, player in pairs(Players:GetPlayers()) do
@@ -1125,7 +1161,7 @@ dashEnabled = not dashEnabled
 dashToggleBtn.BackgroundColor3 = dashEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
 dashToggleBtn.Text = dashEnabled and "ACTIVADO" or "DESACTIVADO"
 end)
--- LIMPIEZA DE LISTAS AL SALIR JUGADORES
+-- LIMPIEZA DE LISTAS
 Players.PlayerRemoving:Connect(function(pl)
 for i = #whitelist, 1, -1 do
 if whitelist[i] == pl.Name then table.remove(whitelist, i) end
@@ -1136,10 +1172,21 @@ end
 updateListCounts()
 if pickerGui.Visible then rebuildPicker() end
 end)
--- HOTKEYS
+-- HOTKEYS (CON TECLA LOCK + CAPTURA DE TECLA)
 UserInputService.InputBegan:Connect(function(input, processed)
+if listeningForKey then
+if input.KeyCode ~= Enum.KeyCode.Unknown then
+lockKey = input.KeyCode
+listeningForKey = false
+updateKeyBtn()
+saveConfig()
+end
+return
+end
 if processed then return end
-if input.KeyCode == Enum.KeyCode.X then
+if input.KeyCode == lockKey then
+toggleLock()
+elseif input.KeyCode == Enum.KeyCode.X then
 antiStunEnabled = not antiStunEnabled
 jumping = true
 updateNsToggle()
@@ -1164,18 +1211,15 @@ or state == Enum.HumanoidStateType.Physics then
 jump()
 end
 end)
-
--- LOOP CAMERA LOCK (CON REGLAS DE LISTAS)
+-- LOOP CAMERA LOCK (CON PARTE ELEGIBLE Y REGLAS DE LISTAS)
 local lastDeltaTime = 1/60
 local function cameraLockStep(dt)
 lastDeltaTime = dt or (1/60)
 if not targetLock or not lockedPlayer or not lockedPlayer.Character then return end
--- Regla: nunca mantener lock en whitelist
 if inList(whitelist, lockedPlayer.Name) then
 resetLock()
 return
 end
--- Regla: si hay blacklist, el lock siempre va a ellos
 if #blacklist > 0 and not inList(blacklist, lockedPlayer.Name) then
 local b = getClosestPlayer()
 if b then
@@ -1193,56 +1237,15 @@ if not root or not hum or hum.Health <= 0 then
 resetLock()
 return
 end
-local targetPos = root.Position
+-- ELEGIR PARTE DEL CUERPO A APUNTAR
+local aimPart = root
+if lockPart == "head" then
+local head = lockedPlayer.Character:FindFirstChild("Head")
+if head then aimPart = head end
+end
+local targetPos = aimPart.Position
 local aimPosition = targetPos
-if predictEnabled then
-local currentVelocity = Vector3.new(0, 0, 0)
-local vel = root.AssemblyLinearVelocity or root.Velocity
-if vel and vel.Magnitude > 0.5 then
-currentVelocity = vel
-elseif lastTargetPos then
-local delta = targetPos - lastTargetPos
-local elapsed = math.max(0.008, lastDeltaTime)
-currentVelocity = delta / elapsed
-end
-local velSmoothFactor = 0.3
-smoothedVelocity = smoothedVelocity * (1 - velSmoothFactor) + currentVelocity * velSmoothFactor
-if predictAcceleration then
-local currentAcceleration = Vector3.new(0, 0, 0)
-if lastVelocity.Magnitude > 0.1 then
-local accDelta = currentVelocity - lastVelocity
-local elapsed = math.max(0.008, lastDeltaTime)
-currentAcceleration = accDelta / elapsed
-end
-local accSmoothFactor = 0.2
-smoothedAcceleration = smoothedAcceleration * (1 - accSmoothFactor) + currentAcceleration * accSmoothFactor
-lastVelocity = currentVelocity
-local t = predictAmount
-local predictedOffset = (smoothedVelocity * t) + (smoothedAcceleration * 0.5 * t * t)
-if predictVertical then
-aimPosition = targetPos + predictedOffset
-else
-aimPosition = targetPos + Vector3.new(predictedOffset.X, 0, predictedOffset.Z)
-end
-else
-if smoothedVelocity.Magnitude > 0.5 then
-local predictedOffset = smoothedVelocity * predictAmount
-if predictVertical then
-aimPosition = targetPos + predictedOffset
-else
-aimPosition = targetPos + Vector3.new(predictedOffset.X, 0, predictedOffset.Z)
-end
-end
-end
-end
-lastTargetPos = targetPos
-local targetCFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
-if smoothMode then
-Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothAmount)
-else
-Camera.CFrame = targetCFrame
-end
-end
+
 RunService:BindToRenderStep(CAMERA_LOCK_NAME, Enum.RenderPriority.Camera.Value + 1, cameraLockStep)
 -- SEGURIDAD
 localPlayer.CharacterAdded:Connect(function(c)
@@ -1286,6 +1289,8 @@ smoothBtn.BackgroundColor3 = smoothMode and Color3.fromRGB(45, 160, 70) or Color
 smoothValLabel.Text = string.format("%.2f", smoothAmount)
 dist3DBtn.Text = "Dist 3D: " .. (useDistance3D and "ON" or "OFF")
 dist3DBtn.BackgroundColor3 = useDistance3D and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+updatePartBtn()
+updateKeyBtn()
 updateNsToggle()
 updateListCounts()
 nsJumpLabel.Text = "Jump Power: " .. jumpPower
@@ -1306,7 +1311,7 @@ wait(5)
 saveConfig()
 end
 end)
-print("Zeidop Hub cargado OK - LOCK + STUN + DASH + LISTA")
+print("Zeidop Hub cargado OK - LOCK + PARTE + TECLA + STUN + DASH + LISTA")
 -- FIX SCROLL DEL SELECTOR
 local pg2 = Players.LocalPlayer:WaitForChild("PlayerGui")
 local hub2 = pg2:FindFirstChild("ZeidopHub")
@@ -1327,4 +1332,148 @@ layout2:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
 end
 end
 end
-print("Scroll del selector arreglado")
+-- ==================== IMAN / REACH (agregado a LISTA) ====================
+local reachOn = true
+local imanOn = false
+local lungeOn = true
+local fuerza = 4
+local lungeReach = 6
+local maxRange = 14
+local stopRange = 5
+local lastLunge = 0
+
+local function rBtn(text, y, color)
+local b = Instance.new("TextButton")
+b.Size = UDim2.new(1, 0, 0, 22)
+b.Position = UDim2.new(0, 0, 0, y)
+b.BackgroundColor3 = color
+b.Text = text
+b.TextColor3 = Color3.fromRGB(255, 255, 255)
+b.TextSize = 10
+b.Font = Enum.Font.GothamBold
+b.BorderSizePixel = 0
+b.Parent = listPage
+Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+return b
+end
+
+local imanBtn = rBtn("IMAN: OFF", 106, Color3.fromRGB(160, 50, 50))
+local lungeBtn = rBtn("LUNGE: ON", 130, Color3.fromRGB(45, 160, 70))
+local fuerzaBtn = rBtn("Fuerza: 4", 154, Color3.fromRGB(70, 130, 220))
+
+local function myRoot()
+local c = localPlayer.Character
+return c and c:FindFirstChild("HumanoidRootPart")
+end
+local function myHum()
+local c = localPlayer.Character
+return c and c:FindFirstChildOfClass("Humanoid")
+end
+
+local function nearestEnemy()
+local r0 = myRoot()
+if not r0 then return nil, math.huge end
+local best, bd = nil, math.huge
+for _, pl in ipairs(Players:GetPlayers()) do
+if pl ~= localPlayer and pl.Character then
+local r = pl.Character:FindFirstChild("HumanoidRootPart")
+local h = pl.Character:FindFirstChildOfClass("Humanoid")
+if r and h and h.Health > 0 then
+if not inList(whitelist, pl.Name) then
+local d = (r.Position - r0.Position).Magnitude
+if d < bd then bd = d best = r end
+end
+end
+end
+end
+return best, bd
+end
+
+-- IMAN: te acerca gradualmente (no teletransporta)
+RunService.Heartbeat:Connect(function()
+if not reachOn or not imanOn then return end
+local hum = myHum(); local r0 = myRoot()
+if not hum or not r0 or hum.Health <= 0 then return end
+local t, d = nearestEnemy()
+if not t or d > maxRange or d <= stopRange then return end
+local dir = t.Position - r0.Position
+dir = Vector3.new(dir.X, 0, dir.Z)
+if dir.Magnitude > 0 then
+dir = dir.Unit
+local step = math.min(d - stopRange, fuerza * 0.05)
+pcall(function() r0.CFrame = r0.CFrame + dir * step end)
+end
+end)
+
+-- LUNGE: paso corto al golpear (no pega por ti)
+local function doLunge()
+if not reachOn or not lungeOn then return end
+if tick() - lastLunge < 0.25 then return end
+local hum = myHum(); local r0 = myRoot()
+if not hum or not r0 or hum.Health <= 0 then return end
+local t, d = nearestEnemy()
+if not t then return end
+local melee = 6
+local maxL = melee + lungeReach + 4
+if d < melee or d > maxL then return end
+local step = math.min(lungeReach, d - melee + 1)
+local dir = t.Position - r0.Position
+dir = Vector3.new(dir.X, 0, dir.Z)
+if dir.Magnitude > 0 then
+dir = dir.Unit
+lastLunge = tick()
+pcall(function() r0.CFrame = r0.CFrame + dir * step end)
+end
+end
+
+-- Detectores de TU golpe (animacion + boton de ataque)
+local function hookAnims(hum)
+local anim = hum and hum:FindFirstChildOfClass("Animator")
+if not anim then return end
+anim.AnimationPlayed:Connect(function(track)
+local n = (track.Animation and track.Animation.Name or ""):lower()
+if n:match("attack") or n:match("punch") or n:match("m1") or n:match("slash") or n:match("swing") or n:match("combo") or n:match("jab") or n:match("hit") or n:match("strike") then
+doLunge()
+end
+end)
+end
+if localPlayer.Character then hookAnims(localPlayer.Character:FindFirstChildOfClass("Humanoid")) end
+localPlayer.CharacterAdded:Connect(function(c) hookAnims(c:FindFirstChildOfClass("Humanoid")) end)
+
+local atkConn = false
+local function tryAtkBtn()
+if atkConn then return end
+for _, gui in ipairs(playerGui:GetChildren()) do
+if gui:IsA("ScreenGui") and gui.Name ~= "ZeidopHub" then
+for _, o in ipairs(gui:GetDescendants()) do
+if (o:IsA("TextButton") or o:IsA("ImageButton")) then
+local n = o.Name:lower()
+if n:match("attack") or n:match("m1") or n:match("punch") or n:match("combat") or n:match("fight") or n:match("swing") or n:match("hit") or n:match("strike") or n:match("melee") then
+o.Activated:Connect(doLunge)
+atkConn = true
+return
+end
+end
+end
+end
+end
+end
+task.spawn(function() while not atkConn do task.wait(3) tryAtkBtn() end end)
+
+-- Eventos de los botones de LISTA
+imanBtn.MouseButton1Click:Connect(function()
+imanOn = not imanOn
+imanBtn.Text = "IMAN: " .. (imanOn and "ON" or "OFF")
+imanBtn.BackgroundColor3 = imanOn and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+end)
+lungeBtn.MouseButton1Click:Connect(function()
+lungeOn = not lungeOn
+lungeBtn.Text = "LUNGE: " .. (lungeOn and "ON" or "OFF")
+lungeBtn.BackgroundColor3 = lungeOn and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
+end)
+fuerzaBtn.MouseButton1Click:Connect(function()
+fuerza = fuerza + 1
+if fuerza > 10 then fuerza = 1 end
+fuerzaBtn.Text = "Fuerza: " .. fuerza
+end)
+print("IMAN/LUNGE agregados a LISTA")
