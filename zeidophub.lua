@@ -1244,44 +1244,66 @@ if lockPart == "head" then
 local head = lockedPlayer.Character:FindFirstChild("Head")
 if head then aimPart = head end
 end
-local targetPos = aimPart.Position
+  local targetPos = aimPart.Position
 local aimPosition = targetPos
+  
 if predictEnabled then
-local rawVel = root.AssemblyLinearVelocity or root.Velocity or Vector3.new(0,0,0)
-local currentVelocity
-if rawVel.Magnitude > 0.5 then
-currentVelocity = rawVel
-elseif lastTargetPos then
-currentVelocity = (targetPos - lastTargetPos) / math.max(0.008, lastDeltaTime)
-else
-currentVelocity = Vector3.new(0,0,0)
-end
-currentVelocity = Vector3.new(currentVelocity.X, 0, currentVelocity.Z)
-if currentVelocity.Magnitude > 80 then currentVelocity = currentVelocity.Unit * 80 end
-smoothedVelocity = smoothedVelocity * 0.55 + currentVelocity * 0.45
-local predictedOffset = smoothedVelocity * predictAmount
-if predictAcceleration then
-local currentAcceleration = Vector3.new(0,0,0)
-if lastVelocity.Magnitude > 0.1 then
-currentAcceleration = (currentVelocity - lastVelocity) / math.max(0.008, lastDeltaTime)
-end
-currentAcceleration = Vector3.new(currentAcceleration.X, 0, currentAcceleration.Z)
-smoothedAcceleration = smoothedAcceleration * 0.65 + currentAcceleration * 0.35
-lastVelocity = currentVelocity
-predictedOffset = predictedOffset + smoothedAcceleration * 0.5 * predictAmount * predictAmount
-end
-if smoothedVelocity.Magnitude < 1 then predictedOffset = Vector3.new(0,0,0) end
-if predictedOffset.Magnitude > 12 then predictedOffset = predictedOffset.Unit * 12 end
-aimPosition = targetPos + predictedOffset
-end
-lastTargetPos = targetPos
-local targetCFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
-if smoothMode then
-Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothAmount)
-else
-Camera.CFrame = targetCFrame
-end
-end
+    local dt = math.max(lastDeltaTime, 0.001)
+
+    local asmVel = root.AssemblyLinearVelocity or Vector3.new(0,0,0)
+    asmVel = Vector3.new(asmVel.X, 0, asmVel.Z)
+
+    local derivedVel = Vector3.new(0,0,0)
+    if lastTargetPos then
+        derivedVel = (targetPos - lastTargetPos) / dt
+        derivedVel = Vector3.new(derivedVel.X, 0, derivedVel.Z)
+    end
+
+    local diff = (asmVel - derivedVel).Magnitude
+    local trustDerived = math.clamp(diff / 25, 0, 0.85)
+    local trueVel = asmVel:Lerp(derivedVel, trustDerived)
+
+    local velDelta = (trueVel - smoothedVelocity).Magnitude
+    local adaptiveAlpha = math.clamp(velDelta / 30, 0.45, 0.92)
+    smoothedVelocity = smoothedVelocity:Lerp(trueVel, adaptiveAlpha)
+
+    local totalPredictTime = predictAmount + 0.06 + 0.03
+
+    local predictedOffset = smoothedVelocity * totalPredictTime
+
+    if predictAcceleration then
+        local currentAccel = Vector3.new(0,0,0)
+        if lastVelocity.Magnitude > 0.1 then
+            currentAccel = (smoothedVelocity - lastVelocity) / dt
+        end
+        currentAccel = Vector3.new(currentAccel.X, 0, currentAccel.Z)
+        smoothedAcceleration = smoothedAcceleration:Lerp(currentAccel, 0.15)
+        
+        predictedOffset = predictedOffset + (smoothedAcceleration * 0.5 * totalPredictTime * totalPredictTime)
+    end
+    
+    lastVelocity = smoothedVelocity
+
+    local distToTarget = (Camera.CFrame.Position - targetPos).Magnitude
+    local dynamicMax = math.clamp(distToTarget * 0.5, 6, 16)
+    if predictedOffset.Magnitude > dynamicMax then
+        predictedOffset = predictedOffset.Unit * dynamicMax
+    end
+
+    if smoothedVelocity.Magnitude < 2.5 then
+        predictedOffset = Vector3.new(0,0,0)
+    end
+
+    aimPosition = targetPos + predictedOffset
+  end
+      local targetCFrame = CFrame.new(Camera.CFrame.Position, aimPosition)
+    if smoothMode then
+        local exponential = 1 - math.exp(-smoothAmount * 60 * dt)
+        Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, math.clamp(exponential, 0.01, 1))
+    else
+        Camera.CFrame = targetCFrame
+  end
+  end
 RunService:BindToRenderStep(CAMERA_LOCK_NAME, Enum.RenderPriority.Camera.Value + 1, cameraLockStep)
 -- SEGURIDAD
 localPlayer.CharacterAdded:Connect(function(c)
