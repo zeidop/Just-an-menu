@@ -25,8 +25,10 @@ local config = {
     lockBtnXScale = 0.75, lockBtnXOffset = 0,
     lockBtnYScale = 0.65, lockBtnYOffset = 0,
     lockFree = false,
-    reachMeterEnabled = false -- NUEVO: Guardado del medidor
+    reachMeterEnabled = false, -- NUEVO: Guardado del medidor
+    reachMeterText = true -- NUEVO: Mostrar/ocultar solo el texto
 }
+
 local function loadConfig()
     pcall(function()
         if readfile and isfile and isfile(SAVE_FILE) then
@@ -540,7 +542,8 @@ Instance.new("UICorner", instantDashBtn).CornerRadius = UDim.new(0, 6)
 
 -- NUEVO: Botón para ocultar solo el TEXTO del medidor
 local reachTextBtn = Instance.new("TextButton")
-reachTextBtn.Size = UDim2.new(1, 0, 0, 28)reachMeterBtn.Position = UDim2.new(0, 0, 0, 188)
+reachTextBtn.Size = UDim2.new(1, 0, 0, 28)
+reachTextBtn.Position = UDim2.new(0, 0, 0, 154)
 reachTextBtn.BackgroundColor3 = config.reachMeterText and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
 reachTextBtn.Text = config.reachMeterText and "TEXTO: ON" or "TEXTO: OFF"
 reachTextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -2652,7 +2655,6 @@ do
             half(R.dashPlusBtn, true, rowY(t, 2)); btn(R.dashPlusBtn, 18)
 
             header(P, cur, "ESTADO")
-            t = card(P, cur, 3) -- Aumentado a 3 filas
             t = card(P, cur, 4)
             full(R.dashToggleBtn, rowY(t, 1)); btn(R.dashToggleBtn, 12)
             full(R.instantDashBtn, rowY(t, 2)); btn(R.instantDashBtn, 12)
