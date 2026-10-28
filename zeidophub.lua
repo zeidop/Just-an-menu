@@ -1,4 +1,3 @@
- mira la imagen. por favor, revisa más de una sola vez todas las líneas y corrige erorres. 
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
