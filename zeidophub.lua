@@ -24,9 +24,7 @@ local config = {
     aboveView = false, aboveHeight = 12,
     lockBtnXScale = 0.75, lockBtnXOffset = 0,
     lockBtnYScale = 0.65, lockBtnYOffset = 0,
-    lockFree = false,
-    reachMeterEnabled = false, -- NUEVO: Guardado del medidor
-    reachMeterText = true -- NUEVO: Mostrar/ocultar solo el texto
+    lockFree = false
 }
 
 local function loadConfig()
@@ -540,37 +538,11 @@ instantDashBtn.BorderSizePixel = 0
 instantDashBtn.Parent = dashPage
 Instance.new("UICorner", instantDashBtn).CornerRadius = UDim.new(0, 6)
 
--- NUEVO: Botón para ocultar solo el TEXTO del medidor
-local reachTextBtn = Instance.new("TextButton")
-reachTextBtn.Size = UDim2.new(1, 0, 0, 28)
-reachTextBtn.Position = UDim2.new(0, 0, 0, 154)
-reachTextBtn.BackgroundColor3 = config.reachMeterText and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
-reachTextBtn.Text = config.reachMeterText and "TEXTO: ON" or "TEXTO: OFF"
-reachTextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-reachTextBtn.TextSize = 12
-reachTextBtn.Font = Enum.Font.GothamBold
-reachTextBtn.BorderSizePixel = 0
-reachTextBtn.Parent = dashPage
-Instance.new("UICorner", reachTextBtn).CornerRadius = UDim.new(0, 6)
-
--- NUEVO: Botón Medidor de Alcance
-local reachMeterBtn = Instance.new("TextButton")
-reachMeterBtn.Size = UDim2.new(1, 0, 0, 28)
-reachMeterBtn.Position = UDim2.new(0, 0, 0, 188)
-reachMeterBtn.BackgroundColor3 = config.reachMeterEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
-reachMeterBtn.Text = config.reachMeterEnabled and "MEDIDOR: ON" or "MEDIDOR: OFF"
-reachMeterBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-reachMeterBtn.TextSize = 12
-reachMeterBtn.Font = Enum.Font.GothamBold
-reachMeterBtn.BorderSizePixel = 0
-reachMeterBtn.Parent = dashPage
-Instance.new("UICorner", reachMeterBtn).CornerRadius = UDim.new(0, 6)
-
 local dashDesc = Instance.new("TextLabel")
 dashDesc.Size = UDim2.new(1, -10, 0, 50)
-dashDesc.Position = UDim2.new(0, 5, 0, 188)
+dashDesc.Position = UDim2.new(0, 5, 0, 152)
 dashDesc.BackgroundTransparency = 1
-dashDesc.Text = "Multiplica el impulso del dash. MEDIDOR muestra si el objetivo lockeado está en tu alcance."
+dashDesc.Text = "Multiplica el impulso del dash. INSTANT DASH detecta el dash del juego y lo vuelve instantaneo."
 dashDesc.TextColor3 = Color3.fromRGB(120, 120, 130)
 dashDesc.TextSize = 10
 dashDesc.Font = Enum.Font.Gotham
@@ -1547,22 +1519,6 @@ instantDashBtn.MouseButton1Click:Connect(function()
     saveConfig()
 end)
 
--- Evento Medidor
-reachMeterBtn.MouseButton1Click:Connect(function()
-    config.reachMeterEnabled = not config.reachMeterEnabled
-    reachMeterBtn.Text = config.reachMeterEnabled and "MEDIDOR: ON" or "MEDIDOR: OFF"
-    reachMeterBtn.BackgroundColor3 = config.reachMeterEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
-    saveConfig()
-end)
-
--- Evento del botón de TEXTO
-reachTextBtn.MouseButton1Click:Connect(function()
-    config.reachMeterText = not config.reachMeterText
-    reachTextBtn.Text = config.reachMeterText and "TEXTO: ON" or "TEXTO: OFF"
-    reachTextBtn.BackgroundColor3 = config.reachMeterText and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
-    saveConfig()
-end)
-
 -- ============================================
 -- HEARTBEAT ANTI-STUN
 -- ============================================
@@ -1695,10 +1651,6 @@ local function refreshAllVisuals()
     aboveHeightBtn.Text = "Altura: " .. config.aboveHeight
     modeBtn.Text = "Modo: " .. (config.lockFree and "LIBRE" or "NORMAL")
     modeBtn.BackgroundColor3 = config.lockFree and Color3.fromRGB(80, 60, 140) or Color3.fromRGB(70, 130, 220)
-    reachMeterBtn.Text = config.reachMeterEnabled and "MEDIDOR: ON" or "MEDIDOR: OFF"
-    reachMeterBtn.BackgroundColor3 = config.reachMeterEnabled and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
-    reachTextBtn.Text = config.reachMeterText and "TEXTO: ON" or "TEXTO: OFF"
-    reachTextBtn.BackgroundColor3 = config.reachMeterText and Color3.fromRGB(45, 160, 70) or Color3.fromRGB(160, 50, 50)
     updateNsToggle()
     updateListCounts()
     nsJumpLabel.Text = "Jump Power: " .. config.jumpPower
@@ -1724,7 +1676,7 @@ task.spawn(function()
     end
 end)
 
-print("Zeidop Hub cargado OK - LOCK + INSTANT DASH + STUN + DASH + LISTA + DASH ASSIST + MEDIDOR")
+print("Zeidop Hub cargado OK - LOCK + INSTANT DASH + STUN + DASH + LISTA + DASH ASSIST")
 
 -- FIX SCROLL DEL SELECTOR
 task.spawn(function()
@@ -1924,34 +1876,33 @@ do
         update()
     end
 
-    -- CORRECCIÓN CRÍTICA DE SINTAXIS: Separadores (;) añadidos
     createSetting("Angle", 10, 180, 1, false,
         function() return config.assistAngle or 50 end,
-        function(v) config.assistAngle = v; STEER_MAX_ANGLE = math.rad(v) end)
+        function(v) config.assistAngle = v STEER_MAX_ANGLE = math.rad(v) end)
 
     createSetting("Max T", 0.1, 2.0, 0.01, true,
         function() return config.assistMaxT or 0.44 end,
-        function(v) config.assistMaxT = v; MAX_T = v end)
+        function(v) config.assistMaxT = v MAX_T = v end)
 
     createSetting("Lag", 0, 0.3, 0.01, true,
         function() return config.assistLag or 0.06 end,
-        function(v) config.assistLag = v; LAG = v end)
+        function(v) config.assistLag = v LAG = v end)
 
     createSetting("Stop Dist", 1, 20, 1, false,
         function() return config.assistStopDist or 3 end,
-        function(v) config.assistStopDist = v; STOP_DIST = v end)
+        function(v) config.assistStopDist = v STOP_DIST = v end)
 
     createSetting("Spike ON", 10, 200, 1, false,
         function() return config.assistSpikeOn or 50 end,
-        function(v) config.assistSpikeOn = v; SPIKE_ON = v end)
+        function(v) config.assistSpikeOn = v SPIKE_ON = v end)
 
     createSetting("Spike OFF", 10, 200, 1, false,
         function() return config.assistSpikeOff or 35 end,
-        function(v) config.assistSpikeOff = v; SPIKE_OFF = v end)
+        function(v) config.assistSpikeOff = v SPIKE_OFF = v end)
 
     createSetting("Window", 0.05, 2.0, 0.01, true,
         function() return config.assistWindow or 0.35 end,
-        function(v) config.assistWindow = v; WINDOW = v end)
+        function(v) config.assistWindow = v WINDOW = v end)
 
     gearBtn.MouseButton1Click:Connect(function()
         assistSettingsGui.Visible = not assistSettingsGui.Visible
@@ -2129,246 +2080,8 @@ do
 end
 
 -- ============================================
--- MEDIDOR DE ALCANCE REAL (Adaptado al Lock)
--- ============================================
-do
-    local M1_REACH = 5
-    local EDGE = 2
-    local SHOW_RING = true
-    local SPIKE_ON = 45
-    local SPIKE_JUMP = 20
-    local MAX_SAMPLES = 8
-
-    pcall(function()
-        if _G.ZeidopAlcanceCleanup then _G.ZeidopAlcanceCleanup() end
-    end)
-    local oldGui = playerGui:FindFirstChild("ZeidopAlcanceTest")
-    if oldGui then oldGui:Destroy() end
-
-    local hbConn, renderConn, ring = nil, nil, nil
-
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "ZeidopAlcanceTest"
-    gui.ResetOnSpawn = false
-    gui.Parent = playerGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 270, 0, 132)
-    frame.Position = UDim2.new(0.5, -135, 0, 6)
-    frame.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
-    frame.BackgroundTransparency = 0.15
-    frame.BorderSizePixel = 0
-    frame.Parent = gui
-    frame.Visible = config.reachMeterEnabled
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -12, 0, 54)
-    label.Position = UDim2.new(0, 8, 0, 6)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(230, 230, 240)
-    label.TextSize = 12
-    label.Font = Enum.Font.Code
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.TextYAlignment = Enum.TextYAlignment.Top
-    label.TextWrapped = true
-    label.Text = "..."
-    label.Parent = frame
-
-    local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(1, -12, 0, 30)
-    statusLabel.Position = UDim2.new(0, 8, 0, 62)
-    statusLabel.BackgroundTransparency = 1
-    statusLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
-    statusLabel.TextSize = 18
-    statusLabel.Font = Enum.Font.GothamBold
-    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    statusLabel.Text = "SIN DATOS"
-    statusLabel.Parent = frame
-
-    local samples = {}
-
-    local function makeBtn(text, x, color)
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(0, 60, 0, 24)
-        b.Position = UDim2.new(0, x, 1, -30)
-        b.BackgroundColor3 = color
-        b.Text = text
-        b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        b.TextSize = 11
-        b.Font = Enum.Font.GothamBold
-        b.BorderSizePixel = 0
-        b.Parent = frame
-        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-        return b
-    end
-
-    local resetBtn = makeBtn("RESET", 8, Color3.fromRGB(80, 60, 140))
-    local closeBtn = makeBtn("CERRAR", 76, Color3.fromRGB(160, 50, 50))
-
-    resetBtn.MouseButton1Click:Connect(function()
-        samples = {}
-    end)
-
-    closeBtn.MouseButton1Click:Connect(function()
-        config.reachMeterEnabled = false
-        reachMeterBtn.Text = "MEDIDOR: OFF"
-        reachMeterBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
-        saveConfig()
-        frame.Visible = false
-    end)
-
-    local function median(t)
-        if #t == 0 then return nil end
-        local c = {}
-        for i, v in ipairs(t) do c[i] = v end
-        table.sort(c)
-        local n = #c
-        if n % 2 == 1 then return c[(n + 1) / 2] end
-        return (c[n / 2] + c[n / 2 + 1]) / 2
-    end
-
-    -- Función modificada para usar el jugador lockeado
-    local function getLockedEnemy()
-        if not targetLock or not lockedPlayer or not lockedPlayer.Character then return nil, math.huge, nil end
-        local r = lockedPlayer.Character:FindFirstChild("HumanoidRootPart")
-        local h = lockedPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if r and h and h.Health > 0 then
-            local hrp = myRoot()
-            if hrp then
-                local d = r.Position - hrp.Position
-                local dist = Vector3.new(d.X, 0, d.Z).Magnitude
-                return r, dist, lockedPlayer.Name
-            end
-        end
-        return nil, math.huge, nil
-    end
-
-    local function ensureRing()
-        if ring and ring.Parent == workspace then return ring end
-        if not ring then
-            local p = Instance.new("Part")
-            p.Name = "ZeidopAlcanceRing"
-            p.Shape = Enum.PartType.Cylinder
-            p.Anchored = true
-            p.CanCollide = false
-            p.CanQuery = false
-            p.CanTouch = false
-            p.CastShadow = false
-            p.Material = Enum.Material.Neon
-            p.Transparency = 0.8
-            ring = p
-        end
-        ring.Parent = workspace
-        return ring
-    end
-
-    local dashing = false
-    local dashStart = nil
-    local dashT0 = 0
-    local lastH = 0
-
-    hbConn = RunService.Heartbeat:Connect(function()
-        local hrp = myRoot()
-        if not hrp then return end
-        local v = hrp.AssemblyLinearVelocity
-        local h = Vector3.new(v.X, 0, v.Z).Magnitude
-        local now = tick()
-        if not dashing then
-            if h > SPIKE_ON and (h - lastH) > SPIKE_JUMP then
-                dashing = true
-                dashStart = hrp.Position
-                dashT0 = now
-            end
-        else
-            if h < 22 or now - dashT0 > 1.2 then
-                dashing = false
-                local d = hrp.Position - dashStart
-                local dist = Vector3.new(d.X, 0, d.Z).Magnitude
-                if dist > 4 and (now - dashT0) > 0.08 then
-                    table.insert(samples, dist)
-                    if #samples > MAX_SAMPLES then table.remove(samples, 1) end
-                end
-            end
-        end
-        lastH = h
-    end)
-
-    renderConn = RunService.RenderStepped:Connect(function()
-        -- Control de visibilidad desde el menú
-        if not config.reachMeterEnabled then
-            frame.Visible = false
-            if ring then ring.Parent = nil end
-            return
-        end
-        
-        -- Control independiente del texto
-        frame.Visible = config.reachMeterText
-
-        local dashReach = median(samples)
-        local reach = nil
-        if dashReach then reach = dashReach + M1_REACH end
-        
-        -- Usamos getLockedEnemy en lugar de nearestEnemy
-        local enemy, dist, name = getLockedEnemy()
-
-        local l1 = "Haz un dash para medir (0 muestras)"
-        if dashReach then
-            l1 = string.format("Dash medido: %.1f studs (%d dashes)", dashReach, #samples)
-        end
-        local l2 = "Alcance total: --"
-        if reach then
-            l2 = string.format("Alcance total (dash + M1 %s): %.1f", tostring(M1_REACH), reach)
-        end
-        local l3 = "Objetivo lockeado: ninguno"
-        if enemy then
-            l3 = string.format("Objetivo: %s a %.1f studs", name, dist)
-        end
-        label.Text = l1 .. "\n" .. l2 .. "\n" .. l3
-
-        local color = Color3.fromRGB(150, 150, 160)
-        local text = "SIN DATOS"
-        if reach and enemy then
-            local diff = dist - reach
-            if diff <= -EDGE then
-                color = Color3.fromRGB(80, 220, 120)
-                text = string.format("DENTRO  (sobran %.1f)", -diff)
-            elseif diff < EDGE then
-                color = Color3.fromRGB(255, 210, 70)
-                text = "BORDE"
-            else
-                color = Color3.fromRGB(255, 90, 90)
-                text = string.format("FUERA  (faltan %.1f)", diff)
-            end
-        end
-        statusLabel.Text = text
-        statusLabel.TextColor3 = color
-
-        if SHOW_RING and reach and enemy then
-            local r = ensureRing()
-            r.Color = color
-            r.Size = Vector3.new(0.2, reach * 2, reach * 2)
-            r.CFrame = CFrame.new(enemy.Position - Vector3.new(0, 2.9, 0)) * CFrame.Angles(0, 0, math.rad(90))
-        elseif ring then
-            ring.Parent = nil
-        end
-    end)
-
-    local function cleanup()
-        if hbConn then hbConn:Disconnect() end
-        if renderConn then renderConn:Disconnect() end
-        if ring then
-            ring:Destroy()
-            ring = nil
-        end
-        if gui then gui:Destroy() end
-    end
-
-    _G.ZeidopAlcanceCleanup = cleanup
-end
-
--- ============================================
 -- SKIN VISUAL (SOLO INTERFAZ - no cambia ninguna logica ni funcion)
+-- Pegar al FINAL del hub. Para quitarlo: borra este bloque completo.
 -- ============================================
 do
     local R = {
@@ -2390,7 +2103,7 @@ do
         nsDashSizePlus = nsDashSizePlus, nsLockBtn = nsLockBtn, nsInfoLabel = nsInfoLabel,
         dashPage = dashPage, dashTitle = dashTitle, dashValueLabel = dashValueLabel,
         dashMinusBtn = dashMinusBtn, dashPlusBtn = dashPlusBtn, dashToggleBtn = dashToggleBtn,
-        instantDashBtn = instantDashBtn, dashDesc = dashDesc, reachMeterBtn = reachMeterBtn, reachTextBtn = reachTextBtn,
+        instantDashBtn = instantDashBtn, dashDesc = dashDesc,
         listPage = listPage, wlBtn = wlBtn, blBtn = blBtn, listHint = listHint,
         imanBtn = imanBtn, lungeBtn = lungeBtn, fuerzaBtn = fuerzaBtn,
         pickerGui = pickerGui, pickerStroke = pickerStroke, pickerTitle = pickerTitle,
@@ -2436,6 +2149,7 @@ do
             g.Rotation = rot
             g.Parent = o
         end
+        -- estilo comun de boton (los colores de estado ON/OFF los sigue manejando tu logica)
         local function btn(o, size)
             corner(o, 8)
             grad(o, WHITE, Color3.fromRGB(205, 205, 205), 90)
@@ -2444,6 +2158,7 @@ do
             o.TextSize = size
             o.ZIndex = 2
         end
+        -- rejilla: media fila, fila completa, columnas desde la derecha, etiqueta
         local function half(o, right, y)
             o.Position = UDim2.new(right and 0.5 or 0, right and 4 or 8, 0, y)
             o.Size = UDim2.new(0.5, -12, 0, RH)
@@ -2495,6 +2210,7 @@ do
         end
         local function rowY(top, i) return top + (i - 1) * (RH + GAP) end
 
+        -- ===== MENU, TITULO Y PESTANAS LATERALES =====
         step("menu", function()
             local m = R.menuFrame
             m.Size = UDim2.new(0, 400, 0, 300)
@@ -2547,6 +2263,7 @@ do
             sep.Parent = R.menuFrame
         end)
 
+        -- ===== PAGINA LOCK =====
         step("lock", function()
             local P, cur = R.lockPage, {y = 0}
             header(P, cur, "BOTON FLOTANTE")
@@ -2564,7 +2281,7 @@ do
             col(R.predictPlus, 2, rowY(t, 1)); btn(R.predictPlus, 10)
             col(R.predictToggle, 1, rowY(t, 1)); btn(R.predictToggle, 11)
 
-            local a = R.aimSep
+            local a = R.aimSep -- se reutiliza como encabezado de seccion
             a.Text = "APUNTADO / TECLA"
             a.Font = FB
             a.TextSize = 11
@@ -2588,6 +2305,7 @@ do
             H[P] = cur.y - 8
         end)
 
+        -- ===== PAGINA STUN =====
         step("stun", function()
             local P, cur = R.noStunPage, {y = 0}
             header(P, cur, "ANTI-STUN")
@@ -2628,6 +2346,7 @@ do
             H[P] = cur.y + 28
         end)
 
+        -- ===== PAGINA DASH (incluye el boton de Dash Assist, que vive en un do-block) =====
         step("dash", function()
             local P, cur = R.dashPage, {y = 0}
             local assistB, gearB
@@ -2655,12 +2374,10 @@ do
             half(R.dashPlusBtn, true, rowY(t, 2)); btn(R.dashPlusBtn, 18)
 
             header(P, cur, "ESTADO")
-            t = card(P, cur, 4)
+            t = card(P, cur, 2)
             full(R.dashToggleBtn, rowY(t, 1)); btn(R.dashToggleBtn, 12)
             full(R.instantDashBtn, rowY(t, 2)); btn(R.instantDashBtn, 12)
-            full(R.reachTextBtn, rowY(t, 3)); btn(R.reachTextBtn, 12)
-            full(R.reachMeterBtn, rowY(t, 4)); btn(R.reachMeterBtn, 12)
-          
+
             header(P, cur, "DASH ASSIST")
             t = card(P, cur, 1)
             if assistB then
@@ -2683,6 +2400,7 @@ do
             H[P] = cur.y + 56
         end)
 
+        -- ===== PAGINA LISTA =====
         step("list", function()
             local P, cur = R.listPage, {y = 0}
             header(P, cur, "LISTAS")
@@ -2704,6 +2422,7 @@ do
             H[P] = cur.y - 8
         end)
 
+        -- ===== AREA CON SCROLL (las paginas ahora tienen espacio de sobra) =====
         step("scroll", function()
             local sc = Instance.new("ScrollingFrame")
             sc.Name = "ZeidopSkinScroll"
@@ -2730,6 +2449,7 @@ do
             end
         end)
 
+        -- ===== VENTANAS EMERGENTES (selector de jugadores y config de Dash Assist) =====
         step("popups", function()
             local pk = R.pickerGui
             pk.Size = UDim2.new(0, 230, 0, 270)
@@ -2771,6 +2491,7 @@ do
             end
         end)
 
+        -- ===== BOTONES FLOTANTES (solo apariencia; tamano y posicion siguen siendo tuyos) =====
         step("float", function()
             for _, b in ipairs({R.lockButton, R.jumpBtn, R.dashFloatBtn}) do
                 b.Font = Enum.Font.GothamBlack
@@ -2784,4 +2505,704 @@ do
         end)
     end)
     if not ok then warn("[zeidop skin] " .. tostring(err)) end
+end
+
+-- ============================================================
+-- ZEIDOP EXTRAS v4  (ya integrado en el hub)
+-- Incluye: Dash Assist V2 (auto ping/fps + filtro de saltos), Jump Sync y pestana EXTRA.
+-- Sin unlock de FPS, sin sensibilidad y sin prioridad alternativa del lock.
+-- El cerebro del lock (cameraLockStep / faceStep / CAM_PRIORITY) NO se toca.
+-- ============================================================
+do
+local X = {} -- todo cuelga de aqui para no pasar el limite de 200 locales del hub
+
+-- ---------- CONFIG NUEVA (el loadConfig original no conoce estas llaves) ----------
+do
+    local defaults = {
+        jumpSync = true, jumpSyncNeedLock = true, jumpSyncRange = 25, jumpSyncDelay = 0, jumpSyncVy = 25,
+        assistMode = "v2", assistAuto = true, assistPingK = 0.7, assistIgnoreJump = true,
+    }
+    for k, v in pairs(defaults) do
+        if config[k] == nil then config[k] = v end
+    end
+    pcall(function()
+        if readfile and isfile and isfile(SAVE_FILE) then
+            local d = HttpService:JSONDecode(readfile(SAVE_FILE))
+            if type(d) == "table" then
+                for k in pairs(defaults) do
+                    if d[k] ~= nil then config[k] = d[k] end
+                end
+            end
+        end
+    end)
+    -- llaves muertas del lock (nunca se usaron): fuera
+    config.smoothMode, config.smoothAmount = nil, nil
+end
+
+-- ---------- MEDIDOR DE FPS / PING (solo mide, no toca nada) ----------
+X.perf = { fps = 60, p90 = 1 / 60, ping = 50 }
+do
+    local N, i = 40, 0
+    local buf, tmp = {}, {}
+    for k = 1, N do buf[k] = 1 / 60 end
+    RunService.Heartbeat:Connect(function(dt)
+        i = i % N + 1
+        buf[i] = dt
+    end)
+    task.spawn(function()
+        local Stats = game:GetService("Stats")
+        while true do
+            task.wait(0.25)
+            for k = 1, N do tmp[k] = buf[k] end
+            table.sort(tmp)
+            X.perf.fps = 1 / math.max(tmp[math.floor(N / 2)], 0.001)
+            X.perf.p90 = tmp[math.floor(N * 0.9)]
+            local ok, p = pcall(function()
+                return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+            end)
+            if ok and type(p) == "number" then X.perf.ping = p end
+        end
+    end)
+end
+
+-- ---------- DASH ASSIST V2 ----------
+X.status = "-"
+X.lastMaxT = config.assistMaxT or 0.44
+do
+    local P = X.perf
+    local K = { REF_PING = 28, REF_FRAME = 1 / 120, AIR = 0.06, SPIKE_JUMP = 25, WIN = 0.10, HN = 48 }
+    local S = {
+        active = false, driver = nil, origDir = nil, untilT = 0, startT = 0, lastH = 0,
+        rejectUntil = 0, airSince = nil, lastJump = -10, lastReq = -10, near = nil, lastNear = 0,
+    }
+    local H = { t = {}, p = {}, n = 0, head = 0, root = nil }
+    local F = {}
+    local conn = nil
+    local function cfg(k, d)
+        local v = config[k]
+        if v == nil then return d end
+        return v
+    end
+
+    -- ===== utilidades del driver del dash (igual que el assist original) =====
+    function F.usable(c)
+        if c:IsA("BodyVelocity") then return true end
+        if c:IsA("LinearVelocity") then
+            local ok, rel = pcall(function() return c.RelativeTo end)
+            return ok and rel == Enum.ActuatorRelativeTo.World
+        end
+        return false
+    end
+    function F.getVel(c)
+        if c:IsA("BodyVelocity") then return c.Velocity end
+        return c.VectorVelocity
+    end
+    function F.setVel(c, v)
+        if c:IsA("BodyVelocity") then c.Velocity = v else c.VectorVelocity = v end
+    end
+    function F.findDriver(hrp)
+        for _, c in ipairs(hrp:GetChildren()) do
+            if F.usable(c) then return c end
+        end
+        return nil
+    end
+    function F.targetRoot()
+        if not targetLock or not lockedPlayer then return nil end
+        local ch = lockedPlayer.Character
+        local r = ch and ch:FindFirstChild("HumanoidRootPart")
+        local h = ch and ch:FindFirstChildOfClass("Humanoid")
+        if r and h and h.Health > 0 then return r end
+        return nil
+    end
+
+    -- ===== HISTORIAL DE POSICIONES DEL OBJETIVO (buffer circular con tiempos) =====
+    -- Velocidad por desplazamiento en una ventana de TIEMPO, no por frame: no depende de tus FPS.
+    function F.hReset(root)
+        H.n, H.head, H.root = 0, 0, root
+    end
+    function F.hPush(now, pos)
+        if H.n > 0 and (pos - H.p[H.head]).Magnitude > 60 then H.n = 0 end -- teletransporte/habilidad: descarta
+        H.head = H.head % K.HN + 1
+        H.t[H.head], H.p[H.head] = now, pos
+        if H.n < K.HN then H.n = H.n + 1 end
+    end
+    -- posicion registrada hace "age" segundos (se busca entre dos muestras guardadas)
+    function F.posAt(age)
+        local want = H.t[H.head] - age
+        local nextIdx = H.head
+        for k = 1, H.n - 1 do
+            local idx = (H.head - 1 - k) % K.HN + 1
+            if H.t[idx] <= want then
+                local t0, t1 = H.t[idx], H.t[nextIdx]
+                local a = 0
+                if t1 > t0 then a = (want - t0) / (t1 - t0) end
+                return H.p[idx] + (H.p[nextIdx] - H.p[idx]) * a
+            end
+            nextIdx = idx
+        end
+        return nil
+    end
+    -- velocidad horizontal media entre hace a2 s y hace a1 s (a2 > a1)
+    function F.velBetween(root, a1, a2)
+        if H.root ~= root or H.n < 3 then return nil end
+        local pA, pB = F.posAt(a1), F.posAt(a2)
+        if not pA or not pB then return nil end
+        local d = pA - pB
+        return Vector3.new(d.X, 0, d.Z) / (a2 - a1)
+    end
+    -- 1 = el enemigo va recto y predecible; baja hacia 0.35 si esta girando/haciendo snake
+    function F.stability(root)
+        local v1, v2 = F.velBetween(root, 0, 0.10), F.velBetween(root, 0.12, 0.24)
+        if not v1 or not v2 or v1.Magnitude < 4 or v2.Magnitude < 4 then return 1 end
+        local ang = math.acos(math.clamp(v1.Unit:Dot(v2.Unit), -1, 1))
+        return math.clamp(1 - ang / math.rad(100), 0.35, 1)
+    end
+    -- velocidad del objetivo: la replicada por Roblox, salvo que contradiga lo que realmente se movio
+    function F.targetVel(tRoot)
+        local tv = tRoot.AssemblyLinearVelocity
+        local v = Vector3.new(tv.X, 0, tv.Z)
+        local vh = F.velBetween(tRoot, 0, K.WIN)
+        if vh then
+            if v.Magnitude < 1 then
+                v = vh
+            elseif vh.Magnitude > 3 then
+                local ratio = v.Magnitude / vh.Magnitude
+                if v.Unit:Dot(vh.Unit) < 0.7 or ratio > 1.8 or ratio < 0.55 then v = vh end
+            end
+        end
+        if v.Magnitude > 150 then v = v.Unit * 150 end
+        return v
+    end
+
+    -- ===== AUTO: compensacion de latencia segun ping y FPS (relativo a 28 ms / 120 FPS) =====
+    function F.effLag()
+        local lag = cfg("assistLag", 0.06)
+        if cfg("assistAuto", true) then
+            local dPing = math.max(0, P.ping - K.REF_PING) / 1000
+            local dFrame = math.max(0, P.p90 - K.REF_FRAME)
+            lag = math.clamp(lag + dPing * cfg("assistPingK", 0.7) + dFrame * 0.5, 0, 0.35)
+        end
+        return lag
+    end
+    X.effLag = F.effLag
+
+    function F.interceptDir(myPos, tRoot, speed, maxT)
+        local r = Vector3.new(tRoot.Position.X - myPos.X, 0, tRoot.Position.Z - myPos.Z)
+        local v = F.targetVel(tRoot)
+        r = r + v * F.effLag()
+        local a = v:Dot(v) - speed * speed
+        local b = 2 * r:Dot(v)
+        local cc = r:Dot(r)
+        local t = nil
+        if math.abs(a) < 1e-4 then
+            if b < 0 then t = -cc / b end
+        else
+            local disc = b * b - 4 * a * cc
+            if disc >= 0 then
+                local sq = math.sqrt(disc)
+                local t1, t2 = (-b - sq) / (2 * a), (-b + sq) / (2 * a)
+                if t1 > 0 and t2 > 0 then t = math.min(t1, t2)
+                elseif t1 > 0 then t = t1
+                elseif t2 > 0 then t = t2 end
+            end
+        end
+        t = math.clamp(t or 0, 0, maxT)
+        local aim = r + v * t
+        if aim.Magnitude < 0.01 then return nil end
+        return aim.Unit
+    end
+
+    -- ===== FILTRO DE DASH CON SALTO =====
+    function F.jumpDashReason(t0)
+        if S.airSince and t0 - S.airSince > K.AIR then return "estabas en el aire" end
+        local dj = t0 - S.lastJump
+        if dj >= 0 and dj < 0.25 then return "saltaste justo antes" end
+        return nil
+    end
+
+    function F.startAssist(hrp, drv, t0)
+        if S.active then
+            if drv and not S.driver then
+                S.driver = drv
+                S.untilT = os.clock() + 1.5
+            end
+            return
+        end
+        local now = os.clock()
+        if now < S.rejectUntil then return end
+        local v = drv and F.getVel(drv) or hrp.AssemblyLinearVelocity
+        local h = Vector3.new(v.X, 0, v.Z)
+        if h.Magnitude < 10 then return end
+        if cfg("assistIgnoreJump", true) then
+            local why = F.jumpDashReason(t0 or now)
+            if why then
+                S.rejectUntil = now + 0.6
+                X.status = "ignorado (" .. why .. ")"
+                return
+            end
+        end
+        S.active, S.driver, S.origDir = true, drv, h.Unit
+        S.startT = now
+        S.untilT = now + (drv and 1.5 or cfg("assistWindow", 0.35))
+        X.status = "asistiendo"
+    end
+
+    function F.steer(hrp)
+        local tRoot = F.targetRoot()
+        if not tRoot or not S.origDir then return end
+        local cur = (S.driver and S.driver.Parent) and F.getVel(S.driver) or hrp.AssemblyLinearVelocity
+        local speedH = Vector3.new(cur.X, 0, cur.Z).Magnitude
+        if speedH < 10 then return end
+        local toT = Vector3.new(tRoot.Position.X - hrp.Position.X, 0, tRoot.Position.Z - hrp.Position.Z)
+        if toT.Magnitude < cfg("assistStopDist", 3) then return end
+        local ang = math.acos(math.clamp(S.origDir:Dot(toT.Unit), -1, 1))
+        if ang > math.rad(cfg("assistAngle", 50)) then return end
+        local maxT = cfg("assistMaxT", 0.44)
+        if cfg("assistAuto", true) then
+            maxT = math.max(0.1, maxT * F.stability(tRoot)) -- Max T lo decide el auto segun lo predecible que sea el enemigo
+        end
+        X.lastMaxT = maxT
+        local dir = F.interceptDir(hrp.Position, tRoot, speedH, maxT)
+        if not dir then return end
+        local nv = Vector3.new(dir.X * speedH, cur.Y, dir.Z * speedH)
+        if S.driver and S.driver.Parent then
+            F.setVel(S.driver, nv)
+        else
+            hrp.AssemblyLinearVelocity = nv
+        end
+    end
+
+    function F.hookChar(char)
+        if conn then conn:Disconnect() conn = nil end
+        local hrp = char:WaitForChild("HumanoidRootPart", 5)
+        if not hrp then return end
+        conn = hrp.ChildAdded:Connect(function(child)
+            if config.assistMode ~= "v2" or not F.usable(child) then return end
+            local t0 = os.clock()
+            RunService.Heartbeat:Wait()
+            RunService.Heartbeat:Wait()
+            if child.Parent and F.targetRoot() then F.startAssist(hrp, child, t0) end
+        end)
+    end
+
+    UserInputService.JumpRequest:Connect(function()
+        local now = os.clock()
+        S.lastJump, S.lastReq = now, now
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        local now = os.clock()
+        -- seguimiento de aire / salto (siempre, para tenerlo listo cuando dasheas)
+        local hum = humanoid
+        if hum and hum.Parent then
+            if hum.FloorMaterial == Enum.Material.Air then
+                S.airSince = S.airSince or now
+            else
+                S.airSince = nil
+            end
+            if hum:GetState() == Enum.HumanoidStateType.Jumping then S.lastJump = now end
+        end
+
+        -- historial del objetivo: del bloqueado o, si no hay lock, del enemigo mas cercano
+        -- (asi ya existe cuando pulsas LOCK justo antes del dash)
+        local tr = F.targetRoot()
+        local cand = tr
+        if not cand and config.assistMode == "v2" then
+            if now - S.lastNear > 0.15 then
+                S.lastNear = now
+                S.near = (nearestEnemy())
+            end
+            cand = S.near
+        end
+        if cand and cand.Parent then
+            if H.root ~= cand then F.hReset(cand) end
+            F.hPush(now, cand.Position)
+        elseif H.root then
+            F.hReset(nil)
+        end
+
+        if config.assistMode ~= "v2" then
+            S.active, S.driver = false, nil
+            return
+        end
+        local char = localPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local v = hrp.AssemblyLinearVelocity
+        local h = math.sqrt(v.X * v.X + v.Z * v.Z)
+
+        if not S.active then
+            if h > cfg("assistSpikeOn", 50)
+                and (S.lastH < cfg("assistSpikeOff", 35) or h - S.lastH > K.SPIKE_JUMP)
+                and tr then
+                F.startAssist(hrp, F.findDriver(hrp), now)
+            end
+        elseif (S.driver and not S.driver.Parent) or now > S.untilT then
+            S.active, S.driver = false, nil
+            X.status = "dash terminado"
+        elseif cfg("assistIgnoreJump", true) and S.lastReq > S.startT then
+            S.active, S.driver = false, nil
+            X.status = "cancelado (saltaste durante el dash)"
+        else
+            F.steer(hrp)
+        end
+        S.lastH = h
+    end)
+
+    if localPlayer.Character then task.spawn(F.hookChar, localPlayer.Character) end
+    localPlayer.CharacterAdded:Connect(function(c)
+        S.active, S.driver = false, nil
+        F.hReset(nil)
+        task.spawn(F.hookChar, c)
+    end)
+
+    -- modos: v2 (este) / classic (assist viejo del hub) / off
+    function X.applyMode()
+        local m = config.assistMode
+        if m ~= "v2" and m ~= "classic" and m ~= "off" then
+            m = "v2"
+            config.assistMode = m
+        end
+        config.dashAssist = (m == "classic") -- el motor viejo solo corre en modo classic
+        if m ~= "v2" then S.active, S.driver = false, nil end
+    end
+    X.applyMode()
+end
+
+-- ---------- JUMP SYNC: saltar cuando el enemigo salta ----------
+-- Detecta el salto por la ALTURA del enemigo (historial de posicion), no por la velocidad
+-- replicada, que en movil llega tarde. Si el enemigo sube >= umbral en 0.15 s, tu personaje salta.
+-- El historial es un anillo fijo: no crea tablas por frame (cero basura = cero tirones).
+X.jstatus = "-"
+do
+    local HN = 96
+    local J = { root = nil, lastJumpAt = -10, lastNear = 0, near = nil, ht = {}, hy = {}, n = 0, head = 0 }
+    local BAD = {
+        [Enum.HumanoidStateType.FallingDown] = true, [Enum.HumanoidStateType.GettingUp] = true,
+        [Enum.HumanoidStateType.Ragdoll] = true, [Enum.HumanoidStateType.PlatformStanding] = true,
+        [Enum.HumanoidStateType.Physics] = true, [Enum.HumanoidStateType.Dead] = true,
+    }
+
+    local function pickTarget(now)
+        if targetLock and lockedPlayer then
+            local ch = lockedPlayer.Character
+            return ch and ch:FindFirstChild("HumanoidRootPart")
+        end
+        if config.jumpSyncNeedLock then return nil end
+        if now - J.lastNear > 0.15 then
+            J.lastNear = now
+            J.near = (nearestEnemy())
+        end
+        return J.near
+    end
+
+    -- altura del enemigo hace "age" segundos (muestra guardada mas cercana, max 0.1 s de error)
+    local function heightAgo(now, age)
+        local want = now - age
+        local best, bestDt = nil, 0.1
+        for k = 0, J.n - 1 do
+            local idx = (J.head - 1 - k) % HN + 1
+            local t = J.ht[idx]
+            local dt = math.abs(t - want)
+            if dt < bestDt then
+                bestDt, best = dt, J.hy[idx]
+            end
+            if t < want - 0.1 then break end
+        end
+        return best
+    end
+
+    RunService.Heartbeat:Connect(function()
+        if not config.jumpSync then
+            J.root, J.n, J.head = nil, 0, 0
+            return
+        end
+        local now = os.clock()
+        local tr = pickTarget(now)
+        if not tr or not tr.Parent then
+            J.root, J.n, J.head = nil, 0, 0
+            return
+        end
+        if J.root ~= tr then J.root, J.n, J.head = tr, 0, 0 end
+
+        local y = tr.Position.Y
+        J.head = J.head % HN + 1
+        J.ht[J.head], J.hy[J.head] = now, y
+        if J.n < HN then J.n = J.n + 1 end
+
+        -- el enemigo subio al menos "umbral" en los ultimos 0.15 s?  (umbral 25 = ~1.25 studs)
+        local hBefore = heightAgo(now, 0.15)
+        if not hBefore then return end
+        if y - hBefore < config.jumpSyncVy / 20 then return end
+        if now - J.lastJumpAt < 0.6 then return end -- un solo salto por salto del enemigo
+
+        local mr, hum = myRoot(), humanoid
+        if not hum or not hum.Parent or hum.Health <= 0 or not mr then return end
+        if (tr.Position - mr.Position).Magnitude > config.jumpSyncRange then
+            X.jstatus = "el enemigo salto, fuera de alcance"
+            return
+        end
+        if BAD[hum:GetState()] or hum.PlatformStand or hum.Sit then
+            X.jstatus = "no salte (aturdido / en el suelo)"
+            return
+        end
+        if hum.FloorMaterial == Enum.Material.Air then
+            X.jstatus = "no salte (ya estabas en el aire)"
+            return
+        end
+
+        J.lastJumpAt = now
+        local function go()
+            if not hum.Parent or hum.Health <= 0 then return end
+            hum.Jump = true
+            pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end)
+            X.jstatus = "salte con el enemigo"
+        end
+        local d = config.jumpSyncDelay / 1000
+        if d > 0 then task.delay(d, go) else go() end
+    end)
+end
+
+-- ---------- PESTANA EXTRA + BOTON DE MODO DEL ASSIST ----------
+do
+    local C = {
+        acc = Color3.fromRGB(160, 120, 255), card = Color3.fromRGB(23, 23, 33), line = Color3.fromRGB(48, 48, 68),
+        on = Color3.fromRGB(45, 160, 70), off = Color3.fromRGB(160, 50, 50), blue = Color3.fromRGB(70, 130, 220),
+        white = Color3.fromRGB(255, 255, 255),
+    }
+    local U = { y = 0, RH = 32, PAD = 8, GAP = 8 }
+    local host = menuFrame:FindFirstChild("ZeidopSkinScroll")
+    local page = Instance.new("Frame")
+    page.Name = "ZeidopExtraPage"
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    page.Parent = host or contentArea
+    local W = {}
+
+    function U.corner(o, r)
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, r)
+        c.Parent = o
+    end
+    function U.style(b, size)
+        U.corner(b, 8)
+        local g = Instance.new("UIGradient")
+        g.Color = ColorSequence.new(C.white, Color3.fromRGB(205, 205, 205))
+        g.Rotation = 90
+        g.Parent = b
+        local s = Instance.new("UIStroke")
+        s.Color = C.white
+        s.Transparency = 0.86
+        s.Thickness = 1
+        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        s.Parent = b
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = size
+        b.TextColor3 = C.white
+        b.BorderSizePixel = 0
+        b.ZIndex = 2
+    end
+    function U.rowY(top, i) return top + (i - 1) * (U.RH + U.GAP) end
+    function U.header(text)
+        local l = Instance.new("TextLabel")
+        l.BackgroundTransparency = 1
+        l.Text = text
+        l.Font = Enum.Font.GothamBold
+        l.TextSize = 11
+        l.TextColor3 = C.acc
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        l.Position = UDim2.new(0, 6, 0, U.y)
+        l.Size = UDim2.new(1, -12, 0, 14)
+        l.ZIndex = 2
+        l.Parent = page
+        U.y = U.y + 18
+    end
+    function U.card(rows)
+        local h = U.PAD * 2 + rows * U.RH + (rows - 1) * U.GAP
+        local f = Instance.new("Frame")
+        f.BackgroundColor3 = C.card
+        f.BorderSizePixel = 0
+        f.Position = UDim2.new(0, 0, 0, U.y)
+        f.Size = UDim2.new(1, 0, 0, h)
+        f.ZIndex = 1
+        f.Parent = page
+        U.corner(f, 10)
+        local s = Instance.new("UIStroke")
+        s.Color = C.line
+        s.Transparency = 0.2
+        s.Thickness = 1
+        s.Parent = f
+        local top = U.y + U.PAD
+        U.y = U.y + h + 14
+        return top
+    end
+    function U.label(text, top, i, ncols, size)
+        local l = Instance.new("TextLabel")
+        l.BackgroundTransparency = 1
+        l.Text = text
+        l.Font = Enum.Font.GothamBold
+        l.TextSize = size or 12
+        l.TextColor3 = Color3.fromRGB(200, 200, 210)
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        l.TextWrapped = true
+        l.Position = UDim2.new(0, 10, 0, U.rowY(top, i))
+        l.Size = UDim2.new(1, -(20 + 48 * ncols), 0, U.RH)
+        l.ZIndex = 2
+        l.Parent = page
+        return l
+    end
+    function U.btn(text, top, i, side, color, size)
+        local b = Instance.new("TextButton")
+        b.Text = text
+        b.BackgroundColor3 = color or C.blue
+        local y = U.rowY(top, i)
+        if side == "F" then
+            b.Position = UDim2.new(0, 8, 0, y)
+            b.Size = UDim2.new(1, -16, 0, U.RH)
+        elseif side == "L" then
+            b.Position = UDim2.new(0, 8, 0, y)
+            b.Size = UDim2.new(0.5, -12, 0, U.RH)
+        else
+            b.Position = UDim2.new(0.5, 4, 0, y)
+            b.Size = UDim2.new(0.5, -12, 0, U.RH)
+        end
+        b.Parent = page
+        U.style(b, size or 11)
+        return b
+    end
+    function U.col(text, top, i, n)
+        local b = Instance.new("TextButton")
+        b.Text = text
+        b.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        b.Position = UDim2.new(1, -(4 + 48 * n), 0, U.rowY(top, i))
+        b.Size = UDim2.new(0, 44, 0, U.RH)
+        b.Parent = page
+        U.style(b, 18)
+        return b
+    end
+    function U.toggle(b, text, get, set)
+        local function paint()
+            local on = get()
+            b.Text = text .. ": " .. (on and "ON" or "OFF")
+            b.BackgroundColor3 = on and C.on or C.off
+        end
+        paint()
+        b.MouseButton1Click:Connect(function()
+            set(not get())
+            paint()
+            saveConfig()
+        end)
+    end
+    function U.stepper(lbl, minus, plus, fmt, get, set, lo, hi, step)
+        local function paint() lbl.Text = string.format(fmt, get()) end
+        paint()
+        local function bump(d)
+            local v = math.clamp(get() + d, lo, hi)
+            set(math.floor(v * 100 + 0.5) / 100)
+            paint()
+            saveConfig()
+        end
+        minus.MouseButton1Click:Connect(function() bump(-step) end)
+        plus.MouseButton1Click:Connect(function() bump(step) end)
+    end
+
+    -- DASH ASSIST AUTO
+    U.header("DASH ASSIST AUTO")
+    do
+        local t = U.card(4)
+        local a = U.btn("", t, 1, "L")
+        U.toggle(a, "Auto ping/fps", function() return config.assistAuto end, function(v) config.assistAuto = v end)
+        local j = U.btn("", t, 1, "R")
+        U.toggle(j, "Ignorar salto", function() return config.assistIgnoreJump end, function(v) config.assistIgnoreJump = v end)
+        local l = U.label("", t, 2, 2, 12)
+        U.stepper(l, U.col("-", t, 2, 2), U.col("+", t, 2, 1), "Ping x: %.2f",
+            function() return config.assistPingK end, function(v) config.assistPingK = v end, 0, 1.5, 0.05)
+        W.eff = U.label("", t, 3, 0, 10)
+        W.dbg = U.label("", t, 4, 0, 10)
+    end
+
+    -- SALTAR CON EL ENEMIGO
+    U.header("SALTAR CON EL ENEMIGO")
+    do
+        local t = U.card(5)
+        local a = U.btn("", t, 1, "L")
+        U.toggle(a, "Jump sync", function() return config.jumpSync end, function(v) config.jumpSync = v end)
+        local b = U.btn("", t, 1, "R")
+        U.toggle(b, "Solo con lock", function() return config.jumpSyncNeedLock end, function(v) config.jumpSyncNeedLock = v end)
+        local l1 = U.label("", t, 2, 2, 12)
+        U.stepper(l1, U.col("-", t, 2, 2), U.col("+", t, 2, 1), "Alcance: %.0f studs",
+            function() return config.jumpSyncRange end, function(v) config.jumpSyncRange = v end, 5, 80, 5)
+        local l2 = U.label("", t, 3, 2, 12)
+        U.stepper(l2, U.col("-", t, 3, 2), U.col("+", t, 3, 1), "Retraso: %.0f ms",
+            function() return config.jumpSyncDelay end, function(v) config.jumpSyncDelay = v end, 0, 300, 10)
+        local l3 = U.label("", t, 4, 2, 12)
+        U.stepper(l3, U.col("-", t, 4, 2), U.col("+", t, 4, 1), "Umbral salto: %.0f",
+            function() return config.jumpSyncVy end, function(v) config.jumpSyncVy = v end, 10, 60, 5)
+        W.js = U.label("", t, 5, 0, 10)
+    end
+
+    page.Size = UDim2.new(1, 0, 0, U.y + 8)
+
+    -- pestana
+    local tabB = Instance.new("TextButton")
+    tabB.Text = "EXTRA"
+    tabB.LayoutOrder = 5
+    tabB.Size = UDim2.new(1, 0, 0, 38)
+    tabB.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    tabB.Parent = tabBar
+    U.style(tabB, 12)
+    tabB.TextColor3 = Color3.fromRGB(180, 180, 190)
+    tabs[#tabs + 1] = { btn = tabB, page = page }
+    tabB.MouseButton1Click:Connect(function()
+        setActiveTab(#tabs)
+        if host then
+            host.CanvasPosition = Vector2.new(0, 0)
+            host.CanvasSize = UDim2.new(0, 0, 0, U.y + 8)
+        end
+    end)
+
+    -- boton de modo del assist: reemplaza al viejo en la pestana DASH (mismo lugar y tamano)
+    do
+        local old = nil
+        for _, c in ipairs(dashPage:GetChildren()) do
+            if c:IsA("TextButton") and string.sub(c.Text, 1, 11) == "DASH ASSIST" then
+                old = c
+                break
+            end
+        end
+        if old then
+            local nb = old:Clone()
+            nb.Parent = old.Parent
+            old.Visible = false
+            local function paint()
+                local m = config.assistMode
+                nb.Text = "ASSIST: " .. (m == "v2" and "V2 AUTO" or (m == "classic" and "CLASICO" or "OFF"))
+                nb.BackgroundColor3 = (m == "v2" and C.on) or (m == "classic" and C.blue) or C.off
+            end
+            paint()
+            nb.MouseButton1Click:Connect(function()
+                local nxt = { v2 = "classic", classic = "off", off = "v2" }
+                config.assistMode = nxt[config.assistMode] or "v2"
+                X.applyMode()
+                paint()
+                saveConfig()
+            end)
+        end
+    end
+
+    -- etiquetas vivas (solo se actualizan con la pestana abierta)
+    task.spawn(function()
+        local P = X.perf
+        while true do
+            task.wait(0.5)
+            if page.Visible then
+                W.eff.Text = string.format("FPS %d  -  Ping %d ms\nLag ef.: %.3fs  -  Max T ef.: %.2f", math.floor(P.fps + 0.5), math.floor(P.ping + 0.5), X.effLag(), X.lastMaxT)
+                W.dbg.Text = "Ultimo dash: " .. X.status
+                W.js.Text = "Salto: " .. X.jstatus
+            end
+        end
+    end)
+end
+
+print("Zeidop Hub v4 OK - LOCK + ASSIST V2 + JUMP SYNC + pestana EXTRA")
 end
